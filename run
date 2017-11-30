@@ -53,9 +53,10 @@ StudyFolder=${OUTPUT_DIR}
 PRINTCOM=""
 QUEUE=""
 
-LogFileDir=${OUTPUT_DIR}/logs
-mkdir -p ${LogFileDir}
-FSLSUBOPTIONS="-l ${LogFileDir}"
+LogFileDir=logs
+LogFileDirFull=${OUTPUT_DIR}/${LogFileDir}
+mkdir -p ${LogFileDirFull}
+FSLSUBOPTIONS="-l ${LogFileDirFull}"
 
 #Default Config Settings
 UnwarpDir="" #must be correctly derived from metadata
@@ -288,7 +289,7 @@ ${RUN_VOL} ${FSLDIR}/bin/fsl_sub ${QUEUE} ${FSLSUBOPTIONS} \
     --echospacing=$DwellTime \
     --echodiff=$DeltaTE \
     --unwarpdir=$UnwarpDir \
-    --fmrires=$FinalFMRIResolution \
+    --fmrires=$FinalfMRIResolution \
     --dcmethod=$DistortionCorrection \
     --gdcoeffs=$GradientDistortionCoeffs \
     --topupconfig=$TopupConfig \
@@ -336,19 +337,22 @@ fi
 
 ################################################################################
 # Generate HCP-Functional QC Images
-
 #TODO
 
 ################################################################################
 # Clean-up and prepare outputs
 
 # Delete files that came from the HCP-Structural zip input
-#  - is there a better way to remove a list of files?
 cd ${StudyFolder}
 for f in $(cat ${FilesToRemove}); do
   rm -f $f
 done
 rm -f ${FilesToRemove}
+
+# Delete extraneous preprocessing files
+rm -rf ${StudyFolder}/${Subject}/${fMRIName}/OneStepResampling/prevols/
+rm -rf ${StudyFolder}/${Subject}/${fMRIName}/OneStepResampling/postvols/
+find ${StudyFolder}/${Subject}/${fMRIName}/MotionMatrices/ -name "*.nii.gz" -delete
 
 # Add current gear config.json to output for reference in subsequent gears
 # - For now, don't copy full input json since it might contain identifiers from DICOM etc
@@ -362,9 +366,14 @@ jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config
 # If pipeline successful, zip outputs and clean up
 outputzipname=${Subject}_${fMRIName}_hcpfunc.zip 
 echo -e "${CONTAINER} [$(timestamp)] Zipping output file ${outputzipname}"
-cd ${StudyFolder}
+ziplistfile=${OUTPUT_DIR}/${outputzipname}.list.txt
+rm -f ${ziplistfile} 
 rm -f ${OUTPUT_DIR}/${outputzipname}
-zip -r ${OUTPUT_DIR}/${outputzipname} ${Subject}/ > ${OUTPUT_DIR}/${outputzipname}.log
+cd ${StudyFolder}
+# include all remaining files in functional output zip
+find ${Subject} -type f > ${ziplistfile}
+cat ${ziplistfile} | zip ${OUTPUT_DIR}/${outputzipname} -@ > ${OUTPUT_DIR}/${outputzipname}.log
+rm -f ${ziplistfile}
 
 # zip pipeline logs
 logzipname=pipeline_logs.zip
@@ -374,6 +383,6 @@ zip -r ${OUTPUT_DIR}/${logzipname} ${LogFileDir}/ > ${OUTPUT_DIR}/${logzipname}.
 
 echo -e "${CONTAINER} [$(timestamp)] Cleaning output directory"
 rm -rf ${StudyFolder}/${Subject}/
-rm -rf ${LogFileDir}/
+rm -rf ${LogFileDirFull}/
 
 exit $pipeline_status_code

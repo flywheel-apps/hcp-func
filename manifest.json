@@ -43,12 +43,6 @@
       "description": "Use 'MCFLIRT' (standard FSL moco) for most acquisitions.  'FLIRT'=custom algorithm used by HCP3T internally, but not recommended for public use"
     },
     
-    "Subject": {
-      "type": "string",
-      "default": "Empty",
-      "description": "Subject ID (RECOMMENDED: 'Empty'=gear uses Subject from HCP-Structural )"
-    },
-    
     "RegName": {
       "type": "string",
       "default": "Empty",
