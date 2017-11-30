@@ -89,20 +89,6 @@ ENV FSLTCLSH=/usr/bin/tclsh
 ENV FSLWISH=/usr/bin/wish
 ENV FSLOUTPUTTYPE=NIFTI_GZ
 
-# Download and install FSL ICA-FIX
-RUN apt-get -y update && \
-    apt-get install -y wget && \
-    wget http://www.fmrib.ox.ac.uk/~steve/ftp/fix.tar.gz -O fix.tar.gz && \
-    mkdir -p /tmp/fix && \
-    cd /tmp/fix && \
-    tar zxvf /fix.tar.gz && \
-    mv /tmp/fix/fix* /opt/fix && \
-    rm /fix.tar.gz && \
-    cd / && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-    
-ENV FSL_FIXDIR=/opt/fix
-
 #############################################
 # Download and install Connectome Workbench
 RUN apt-get update && apt-get -y install connectome-workbench=1.2.3-1~nd14.04+1
