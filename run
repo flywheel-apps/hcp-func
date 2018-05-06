@@ -14,7 +14,7 @@ OUTPUT_DIR=$FLYWHEEL_BASE/output
 SCRIPT_DIR=${FLYWHEEL_BASE}/scripts
 SCENE_DIR=${FLYWHEEL_BASE}/scenes
 CONFIG_FILE=$FLYWHEEL_BASE/config.json
-CONTAINER='[flywheel/hcp-struct]'
+CONTAINER='[flywheel/hcp-func]'
 
 source ${FLYWHEEL_BASE}/docker-env.sh
 
@@ -337,7 +337,23 @@ fi
 
 ################################################################################
 # Generate HCP-Functional QC Images
-#TODO
+
+echo -e "${CONTAINER} [$(timestamp)] Starting: Functional QC Image Generation"
+
+qc_scene_root="${StudyFolder}/${Subject}/"
+
+qc_outputdir="${StudyFolder}"
+mkdir -p ${qc_outputdir}
+
+qc_image_root="${qc_outputdir}/${Subject}.hcpfunc_QC."
+
+set -x
+${RUN_QC} ${SCRIPT_DIR}/hcpfunc_qc_mosaic.sh \
+  ${qc_scene_root} \
+  ${fMRIName} \
+  ${qc_image_root}
+
+set +x
 
 ################################################################################
 # Clean-up and prepare outputs
