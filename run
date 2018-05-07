@@ -340,12 +340,12 @@ fi
 
 echo -e "${CONTAINER} [$(timestamp)] Starting: Functional QC Image Generation"
 
-qc_scene_root="${StudyFolder}/${Subject}/"
+qc_scene_root="${StudyFolder}/${Subject}"
 
 qc_outputdir="${StudyFolder}"
 mkdir -p ${qc_outputdir}
 
-qc_image_root="${qc_outputdir}/${Subject}.hcpfunc_QC."
+qc_image_root="${qc_outputdir}/${Subject}_${fMRIName}.hcpfunc_QC."
 
 set -x
 ${RUN_QC} ${SCRIPT_DIR}/hcpfunc_qc_mosaic.sh \
