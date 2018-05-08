@@ -22,7 +22,7 @@
     
 ## Outputs
 * <code>\<subject\>_\<fMRIName\>_hcpfunc.zip</code>: Zipped output directory containing \<fMRIName\>/ and MNINonLinear/Results/\<fMRIName\> folders
-* <code>\<subject\>_\<fMRIName\>_hcpfunc_QC_.*.png</code>: QC images for visual inspection of output quality (Distortion correction and registration to anatomy, details to come...)
+* <code>\<subject\>\_\<fMRIName\>\_hcpfunc\_QC_.*.png</code>: QC images for visual inspection of output quality (Distortion correction and registration to anatomy, details to come...)
 * Logs (details to come...)
 
 ## Important HCP Pipeline links
