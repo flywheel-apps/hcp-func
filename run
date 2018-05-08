@@ -114,7 +114,8 @@ fi
 # Read necessary acquisition params from fMRI
 DwellTime=$(print_decimal_number $(jq -r '.inputs["fMRITimeSeries"].object.info.EffectiveEchoSpacing // empty' ${CONFIG_FILE}))
 pedirfMRI=$(jq -r '.inputs["fMRITimeSeries"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
-UnwarpDir=$( echo "$pedirfMRI" | tr "[ijk]" "[xyz]" )
+pedirfMRI=$( echo "$pedirfMRI" | tr "[ijk]" "[xyz]" )
+UnwarpDir=${pedirfMRI}
 
 if [[ -e "${FW_INPUT_fMRIScout}" ]]; then
   fMRISBRef="${FW_INPUT_fMRIScout}"
@@ -154,17 +155,46 @@ if [[ -e "${FW_INPUT_SiemensGREPhase}" ]] && [[ -e "${FW_INPUT_SiemensGREMagnitu
   
 # For SpinEcho "TOPUP" FieldMap, must include both Pos and Neg phase encode
 elif [[ -e "${FW_INPUT_SpinEchoNegative}" ]] && [[ -e "${FW_INPUT_SpinEchoPositive}" ]]; then
-  SpinEchoPhaseEncodeNegative="${FW_INPUT_SpinEchoNegative}"
-  SpinEchoPhaseEncodePositive="${FW_INPUT_SpinEchoPositive}"
+  
+  SpinEchoPhase1="${FW_INPUT_SpinEchoNegative}"
+  SpinEchoPhase2="${FW_INPUT_SpinEchoPositive}"
+
+  pedirSE1=$(jq -r '.inputs["SpinEchoPositive"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
+  pedirSE2=$(jq -r '.inputs["SpinEchoNegative"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
+  pedirSE1=$( echo "$pedirSE1" | tr "[ijk]" "[xyz]" )
+  pedirSE2=$( echo "$pedirSE2" | tr "[ijk]" "[xyz]" )
+  
+  if [[ -z "${pedirSE1}" ]]; then
+    echo -e "$CONTAINER  SpinEchoPositive input is missing PhaseEncodingDirection metadata!"
+    exit 1
+  elif [[ -z "${pedirSE2}" ]]; then
+    echo -e "$CONTAINER  SpinEchoNegative input data is missing PhaseEncodingDirection metadata!"
+    exit 1
+  elif [[ "${pedirSE1}" == "${pedirSE2}" ]]; then
+    echo -e "$CONTAINER SpinEchoPositive and SpinEchoNegative have the same PhaseEncodingDirection (${pedirSE1})!"
+    exit 1
+  fi
+  
+  pedirfMRI_plane=$( echo "${pedirfMRI}" | sed -E 's/[-+]//g' )
+  pedirSE_plane=$( echo "${pedirSE1}" | sed -E 's/[-+]//g' )
+  
+  if [[ "${pedirfMRI_plane}:${pedirSE1},${pedirSE2}" == "x:x,x-" ]] || [[ "${pedirfMRI_plane}:${pedirSE1},${pedirSE2}" == "y:y,y-" ]]; then
+    SpinEchoPhaseEncodePositive="${SpinEchoPhase1}"
+    SpinEchoPhaseEncodeNegative="${SpinEchoPhase2}"
+  elif [[ "${pedirfMRI_plane}:${pedirSE1},${pedirSE2}" == "x:x-,x" ]] || [[ "${pedirfMRI_plane}:${pedirSE1},${pedirSE2}" == "y:y-,y" ]]; then
+    SpinEchoPhaseEncodePositive="${SpinEchoPhase2}"
+    SpinEchoPhaseEncodeNegative="${SpinEchoPhase1}"
+    echo -e "$CONTAINER  SpinEcho phase-encoding directions were swapped. Continuing!"
+  else
+    echo -e "$CONTAINER  SpinEcho phase-encoding directions (${pedirSE1},${pedirSE2}) invalid or do not match fMRI acquisition plane (${pedirfMRI_plane})."
+    exit 1
+  fi
+  
   DistortionCorrection="TOPUP"
-  
   TopupDwellTime=$(print_decimal_number $(jq -r '.inputs["SpinEchoPositive"].object.info.EffectiveEchoSpacing // empty' ${CONFIG_FILE}))
+  SEUnwarpDir="${pedirSE_plane}"
   
-  pedirPos=$(jq -r '.inputs["SpinEchoPositive"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
-  pedirNeg=$(jq -r '.inputs["SpinEchoNegative"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
-  SEUnwarpDir=$( echo "$pedirPos" | tr "[ijk]" "[xyz]" )
-  
-  #TODO: Double check DwellTime and TopupDwellTime SEUnwarpDir and UnwarpDir match, and resolution too
+  #TODO: Double check DwellTime and TopupDwellTime and resolution too
   
 elif [[ -e "${FW_INPUT_GeneralElectricFieldMap}" ]]; then
   #TODO: how do we handle GE fieldmap? where do we get deltaTE?
@@ -232,6 +262,17 @@ case "$BiasCorrection" in
     ;;
 esac
 
+DOF_EPI2T1="${FW_CONFIG_AnatomyRegDOF}"
+case "${DOF_EPI2T1}" in
+  6|12)
+    #nothing
+    ;;
+  *)
+    echo -e "$CONTAINER  AnatomyRegDOF must be 6 or 12!"
+    exit 1
+    ;;
+esac
+
 # Some options that may become user-specified in the future, but use standard HCP values for now
 GrayordinatesResolution="2"                       # Usually 2mm ("1.60" also available)
 LowResMesh="32"                                   # Usually 32k vertices ("59" = 1.60mm)
@@ -295,6 +336,7 @@ ${RUN_VOL} ${FSLDIR}/bin/fsl_sub ${QUEUE} ${FSLSUBOPTIONS} \
     --topupconfig=$TopupConfig \
     --biascorrection=$BiasCorrection \
     --mctype=${MCType} \
+    --dof=${DOF_EPI2T1} \
     --printcom=$PRINTCOM
 set +x
 

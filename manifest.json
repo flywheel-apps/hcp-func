@@ -43,6 +43,12 @@
       "description": "Use 'MCFLIRT' (standard FSL moco) for most acquisitions.  'FLIRT'=custom algorithm used by HCP3T internally, but not recommended for public use"
     },
     
+    "AnatomyRegDOF": {
+      "type": "integer",
+      "default": 6,
+      "description": "Degrees of freedom for fMRI->Anat registration. 6 (default) = rigid body, when all data is from same scanner. 12 = full affine, recommended for 7T fMRI->3T anatomy"
+    },
+    
     "RegName": {
       "type": "string",
       "default": "Empty",
