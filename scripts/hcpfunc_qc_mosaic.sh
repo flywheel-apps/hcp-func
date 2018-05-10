@@ -34,6 +34,17 @@ qcmosaic2 ${SubjectDIR}/T1w/T1w_acpc_dc_restore ${SubjectDIR}/${fMRIName}/Scout2
 # EPI-res, final MNI registration with low-res T1 edges (match either 2mm or 1.6mm)
 qcmosaic2_2mm ${SubjectDIR}/${fMRIName}/T1w_restore.*.nii.gz ${SubjectDIR}/${fMRIName}/${fMRIName}_SBRef_nonlin ${imgroot}mni2mm_T1
 
+# EPI-res, final MNI space, temporal mean
+qctmp="qctmp"
+${FSLDIR}/bin/fslmaths ${SubjectDIR}/MNINonLinear/Results/${fMRIName}/${fMRIName} -Tmean ${qctmp} \
+  && qcmosaic1_2mm ${qctmp} ${imgroot}mni2mm_mean \
+  && ${FSLDIR}/bin/imrm $qctmp
+
+# EPI-res, final MNI space, temporal std dev
+${FSLDIR}/bin/fslmaths ${SubjectDIR}/MNINonLinear/Results/${fMRIName}/${fMRIName} -Tstd ${qctmp} \
+  && qcmosaic1_2mm ${qctmp} ${imgroot}mni2mm_stdev \
+  && ${FSLDIR}/bin/imrm $qctmp
+
 # Show EPI before and after distortion correction (to confirm correction was applied properly)
 dcdirname=${SubjectDIR}/${fMRIName}/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased
 qcfile_epiToT1_linear=${dcdirname}/epiToT1_linear.nii.gz
