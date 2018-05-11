@@ -105,7 +105,7 @@ RUN apt-get -y update \
     apt-get install -y --no-install-recommends python-numpy && \
     apt-get install -y --no-install-recommends python-scipy && \
     apt-get install -y --no-install-recommends python-nibabel && \
-    wget https://github.com/Washington-University/gradunwarp/archive/bab8930e37f1b8ad3a7e274b07c5b3f0f096be85.tar.gz -O gradunwarp.tar.gz && \
+    wget -nv https://github.com/Washington-University/gradunwarp/archive/bab8930e37f1b8ad3a7e274b07c5b3f0f096be85.tar.gz -O gradunwarp.tar.gz && \
     cd /opt/ && \
     tar zxvf /gradunwarp.tar.gz && \
     mv /opt/gradunwarp-* /opt/gradunwarp && \
@@ -123,7 +123,7 @@ RUN apt-get -y update \
 #Need to use this 2017-08-24 commit to fix bugs in v4.0.0-alpha.5: 90b0766636ba83f06c9198206cc7fa90117b0b11
 RUN apt-get -y update \
     && apt-get install -y --no-install-recommends python-numpy && \
-    wget https://github.com/Washington-University/Pipelines/archive/90b0766636ba83f06c9198206cc7fa90117b0b11.tar.gz -O pipelines.tar.gz && \
+    wget -nv https://github.com/Washington-University/Pipelines/archive/90b0766636ba83f06c9198206cc7fa90117b0b11.tar.gz -O pipelines.tar.gz && \
     cd /opt/ && \
     tar zxvf /pipelines.tar.gz && \
     mv /opt/Pipelines-* /opt/HCP-Pipelines && \

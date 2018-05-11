@@ -393,7 +393,7 @@ set -x
 ${RUN_QC} ${SCRIPT_DIR}/hcpfunc_qc_mosaic.sh \
   ${qc_scene_root} \
   ${fMRIName} \
-  ${qc_image_root} > ${LogFileDir}/functionalqc.log
+  ${qc_image_root} > ${LogFileDirFull}/functionalqc.log
 
 set +x
 
