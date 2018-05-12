@@ -418,8 +418,13 @@ find ${StudyFolder}/${Subject}/${fMRIName}/MotionMatrices/ -name "*.nii.gz" -del
 # - add/update .config.Subject since it might later be pulled from other session metadata
 # - This jq call does the value replacement, then selects just .config but stores it back into a 
 #    new element called ".config" so the new file can be read as though it was flywheel config.json
+# - Also add some additional config params that are currently hardcoded
 OUTPUT_CONFIG_FILE=${StudyFolder}/${Subject}/${Subject}_${fMRIName}_hcpfunc_config.json 
-jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config | {config: .}' $CONFIG_FILE > ${OUTPUT_CONFIG_FILE}
+jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config | {config: .}' $CONFIG_FILE \
+  | jq -r '.config.FinalfMRIResolution = "'${FinalfMRIResolution}'"' \
+  | jq -r '.config.GrayordinatesResolution = "'${GrayordinatesResolution}'"' \
+  | jq -r '.config.LowResMesh = "'${LowResMesh}'"' \
+  | jq -r '.config.SmoothingFWHM = "'${SmoothingFWHM}'"' > ${OUTPUT_CONFIG_FILE}
 
 # If pipeline successful, zip outputs and clean up
 outputzipname=${Subject}_${fMRIName}_hcpfunc.zip 
