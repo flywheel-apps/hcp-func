@@ -156,8 +156,8 @@ if [[ -e "${FW_INPUT_SiemensGREPhase}" ]] && [[ -e "${FW_INPUT_SiemensGREMagnitu
 # For SpinEcho "TOPUP" FieldMap, must include both Pos and Neg phase encode
 elif [[ -e "${FW_INPUT_SpinEchoNegative}" ]] && [[ -e "${FW_INPUT_SpinEchoPositive}" ]]; then
   
-  SpinEchoPhase1="${FW_INPUT_SpinEchoNegative}"
-  SpinEchoPhase2="${FW_INPUT_SpinEchoPositive}"
+  SpinEchoPhase1="${FW_INPUT_SpinEchoPositive}"
+  SpinEchoPhase2="${FW_INPUT_SpinEchoNegative}"
 
   pedirSE1=$(jq -r '.inputs["SpinEchoPositive"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
   pedirSE2=$(jq -r '.inputs["SpinEchoNegative"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
