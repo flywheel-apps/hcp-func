@@ -61,7 +61,7 @@ ENV PATH /opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:
 #############################################
 # Download and install FSL 5.0.9
 
-#Build-time key retrieval is sometimes unable to connect to keyserver.  Instead, download the public key manually and store it in plaintext 
+#Build-time key retrieval is sometimes unable to connect to keyserver.  Instead, download the public key manually and store it in plaintext
 #within repo.  You should run these commands occassionally to make sure the saved public key is up to date:
 #gpg --keyserver hkp://pgp.mit.edu:80  --recv 0xA5D32F012649A5A9 && \
 #gpg --export --armor 0xA5D32F012649A5A9 > neurodebian_pgpkey.txt && \
