@@ -23,7 +23,7 @@ RUN apt-get update \
 # Download and install FreeSurfer
 RUN apt-get -y update \
     && apt-get install -y wget && \
-    wget -qO- ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos4_x86_64-stable-pub-v5.3.0-HCP.tar.gz | tar zxv -C /opt \
+    wget -nv -O- ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos4_x86_64-stable-pub-v5.3.0-HCP.tar.gz | tar zxv -C /opt \
     --exclude='freesurfer/trctrain' \
     --exclude='freesurfer/subjects/fsaverage_sym' \
     --exclude='freesurfer/subjects/fsaverage3' \
@@ -126,7 +126,7 @@ RUN apt-get -y update \
     wget -nv https://github.com/Washington-University/Pipelines/archive/90b0766636ba83f06c9198206cc7fa90117b0b11.tar.gz -O pipelines.tar.gz && \
     cd /opt/ && \
     tar zxvf /pipelines.tar.gz && \
-    mv /opt/Pipelines-* /opt/HCP-Pipelines && \
+    mv /opt/*ipelines* /opt/HCP-Pipelines && \
     rm /pipelines.tar.gz && \
     cd / && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
