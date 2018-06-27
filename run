@@ -21,20 +21,29 @@ source ${FLYWHEEL_BASE}/docker-env.sh
 source ${SCRIPT_DIR}/bash_functions.sh # some useful tools
 
 ##############################################################################
-# Parse configuration options
+# Parse configuration
 
-# If config.json exists, then we parse config file and cast vals to ENV Vars
-# (Flywheel gear run). Otherwise we parse manifest.json and cast the values to
-# ENV Vars from manifest (Docker run) Note value.default is used to grab the
-# configured defaults.
+# If the config file does not exist (i.e., local run) then parse the config
+# options and values from the manifest. Those variables can be found in the
+# manifest.json file within the `config` map.
 
-if [[ -f $CONFIG_FILE ]]; then
-  eval $(jq -r '.config | to_entries[] | "FW_CONFIG_\(.key)=\(.value)"' $CONFIG_FILE)
-  eval $(jq -r '.inputs | to_entries[] | "FW_INPUT_\(.key)=\(.value.location.path)"' $CONFIG_FILE)
-else
-  CONFIG_FILE=$FLYWHEEL_BASE/manifest.json
-  eval $(jq -r '.config | to_entries[] | "FW_CONFIG_\(.key)=\(.value.default)"' $CONFIG_FILE)
-fi
+function parse_config {
+  CONFIG_FILE=$FLYWHEEL_BASE/config.json
+  MANIFEST_FILE=$FLYWHEEL_BASE/manifest.json
+
+  if [[ -f $CONFIG_FILE ]]; then
+    echo -e "$(cat $CONFIG_FILE | jq -r '.config.'$1)"
+  else
+    CONFIG_FILE=$MANIFEST_FILE
+    echo -e "$(cat $MANIFEST_FILE | jq -r '.config.'$1'.default')"
+  fi
+}
+
+FW_CONFIG_fMRIName="$(parse_config 'fMRIName')"
+FW_CONFIG_BiasCorrection="$(parse_config 'BiasCorrection')"
+FW_CONFIG_MotionCorrection="$(parse_config 'MotionCorrection')"
+FW_CONFIG_AnatomyRegDOF="$(parse_config 'AnatomyRegDOF')"
+FW_CONFIG_RegName="$(parse_config 'RegName')"
 
 ##############################################################################
 # use "echo" for testing arguments without running scripts
@@ -63,7 +72,7 @@ UnwarpDir="" #must be correctly derived from metadata
 DeltaTE="NONE" #DeltaTE for GRE fieldmap used to correct FUNCTIONAL
 DwellTime="NONE" # DwellTime for BOTH fMRI and TOPUP SpinEchoFieldMap volumes
 
-DistortionCorrection="NONE" # = Distortion correction for Functional pipeline (NONE, SiemensFieldMap, GeneralElectricFieldMap, TOPUP) 
+DistortionCorrection="NONE" # = Distortion correction for Functional pipeline (NONE, SiemensFieldMap, GeneralElectricFieldMap, TOPUP)
 # --> TOPUP requires SpinEchoPhaseEncodeNegative, SpinEchoPhaseEncodePositive
 # --> FIELDMAP==SiemensFieldMap requires MagnitudeInputName, PhaseInputName
 # --> GeneralElectricFieldMap requires GEB0InputName
@@ -81,7 +90,7 @@ BiasCorrection="NONE" # = bias field estimation for functional volumes (NONE, Le
 # Legacy = use bias field estimated from structural scans (only valid if structural collected in same session without any subject movement)
 # SEBased = estimate bias field from SpinEchoFieldMap (only valid with both Pos and Neg SpinEcho)
 
-GradientDistortionCoeffs="NONE" #no gradient correction unless we are provided with a .grad file 
+GradientDistortionCoeffs="NONE" #no gradient correction unless we are provided with a .grad file
 
 #######################################
 # Process inputs and config options from app
@@ -133,14 +142,14 @@ if [[ -e "${FW_INPUT_SiemensGREPhase}" ]] && [[ -e "${FW_INPUT_SiemensGREMagnitu
   MagnitudeInputName="${FW_INPUT_SiemensGREMagnitude}"
   PhaseInputName="${FW_INPUT_SiemensGREPhase}"
   DistortionCorrection="SiemensFieldMap"
-  
+
   #Ideally, FieldMap_Phase .json would contain EchoTime1 and EchoTime2
   #echotime1=$(jq -r '.inputs["SiemensGREPhase"].object.info.EchoTime1 // empty' ${CONFIG_FILE})
   #echotime2=$(jq -r '.inputs["SiemensGREPhase"].object.info.EchoTime2 // empty' ${CONFIG_FILE})
-  
+
   echotime1=$(jq -r '.inputs["SiemensGREMagnitude"].object.info.EchoTime // empty' ${CONFIG_FILE})
   echotime2=$(jq -r '.inputs["SiemensGREPhase"].object.info.EchoTime // empty' ${CONFIG_FILE})
-  
+
   if [[ -z "$echotime1" ]] || [[ -z "$echotime2" ]]; then
     echo -e "$CONTAINER  No EchoTime metadata found in FieldMap input file!  Exiting."
     exit 1
@@ -148,14 +157,14 @@ if [[ -e "${FW_INPUT_SiemensGREPhase}" ]] && [[ -e "${FW_INPUT_SiemensGREMagnitu
     echo -e "$CONTAINER  EchoTime1 and EchoTime2 are the same (Please ensure Magnitude input is TE1)! Exiting."
     exit 1
   fi
-  
+
   echotime1=$(print_decimal_number $echotime1)
   echotime2=$(print_decimal_number $echotime2)
   DeltaTE=$(echo "($echotime2 - $echotime1)*1000.0" | bc -l)
-  
+
 # For SpinEcho "TOPUP" FieldMap, must include both Pos and Neg phase encode
 elif [[ -e "${FW_INPUT_SpinEchoNegative}" ]] && [[ -e "${FW_INPUT_SpinEchoPositive}" ]]; then
-  
+
   SpinEchoPhase1="${FW_INPUT_SpinEchoPositive}"
   SpinEchoPhase2="${FW_INPUT_SpinEchoNegative}"
 
@@ -163,7 +172,7 @@ elif [[ -e "${FW_INPUT_SpinEchoNegative}" ]] && [[ -e "${FW_INPUT_SpinEchoPositi
   pedirSE2=$(jq -r '.inputs["SpinEchoNegative"].object.info.PhaseEncodingDirection // empty' ${CONFIG_FILE})
   pedirSE1=$( echo "$pedirSE1" | tr "[ijk]" "[xyz]" )
   pedirSE2=$( echo "$pedirSE2" | tr "[ijk]" "[xyz]" )
-  
+
   if [[ -z "${pedirSE1}" ]]; then
     echo -e "$CONTAINER  SpinEchoPositive input is missing PhaseEncodingDirection metadata!"
     exit 1
@@ -174,10 +183,10 @@ elif [[ -e "${FW_INPUT_SpinEchoNegative}" ]] && [[ -e "${FW_INPUT_SpinEchoPositi
     echo -e "$CONTAINER SpinEchoPositive and SpinEchoNegative have the same PhaseEncodingDirection (${pedirSE1})!"
     exit 1
   fi
-  
+
   pedirfMRI_plane=$( echo "${pedirfMRI}" | sed -E 's/[-+]//g' )
   pedirSE_plane=$( echo "${pedirSE1}" | sed -E 's/[-+]//g' )
-  
+
   if [[ "${pedirfMRI_plane}:${pedirSE1},${pedirSE2}" == "x:x,x-" ]] || [[ "${pedirfMRI_plane}:${pedirSE1},${pedirSE2}" == "y:y,y-" ]]; then
     SpinEchoPhaseEncodePositive="${SpinEchoPhase1}"
     SpinEchoPhaseEncodeNegative="${SpinEchoPhase2}"
@@ -189,18 +198,18 @@ elif [[ -e "${FW_INPUT_SpinEchoNegative}" ]] && [[ -e "${FW_INPUT_SpinEchoPositi
     echo -e "$CONTAINER  SpinEcho phase-encoding directions (${pedirSE1},${pedirSE2}) invalid or do not match fMRI acquisition plane (${pedirfMRI_plane})."
     exit 1
   fi
-  
+
   DistortionCorrection="TOPUP"
   TopupDwellTime=$(print_decimal_number $(jq -r '.inputs["SpinEchoPositive"].object.info.EffectiveEchoSpacing // empty' ${CONFIG_FILE}))
   SEUnwarpDir="${pedirSE_plane}"
-  
+
   #TODO: Double check DwellTime and TopupDwellTime and resolution too
-  
+
 elif [[ -e "${FW_INPUT_GeneralElectricFieldMap}" ]]; then
   #TODO: how do we handle GE fieldmap? where do we get deltaTE?
   echo -e "$CONTAINER  Cannot currently handle GeneralElectricFieldmap!"
   exit 1
-  
+
   #GEB0InputName="${FW_INPUT_GeneralElectricFieldMap}"
   #DistortionCorrection="GeneralElectricFieldMap"
 fi
@@ -279,7 +288,7 @@ LowResMesh="32"                                   # Usually 32k vertices ("59" =
 GrayordinatesTemplate="91282_Greyordinates"       # (or 170494_Greyordinates = 1.60mm)
 
 FinalfMRIResolution="2" #****config option?****** #generally "2", "1.60"
-#UseJacobian=""                                      # append DC jacobian to bias correction? TRUE or FALSE. 
+#UseJacobian=""                                      # append DC jacobian to bias correction? TRUE or FALSE.
 #Only recommended for TOPUP (default=TRUE for TOPUP, default=FALSE for GRE fieldmaps)
 
 SmoothingFWHM=${FinalfMRIResolution}              # Smoothing during CIFTI surface and subcortical resampling
@@ -416,10 +425,10 @@ find ${StudyFolder}/${Subject}/${fMRIName}/MotionMatrices/ -name "*.nii.gz" -del
 # - For now, don't copy full input json since it might contain identifiers from DICOM etc
 # - add/update .config.RegName since it might not have been included in config (pre-MSM availability)
 # - add/update .config.Subject since it might later be pulled from other session metadata
-# - This jq call does the value replacement, then selects just .config but stores it back into a 
+# - This jq call does the value replacement, then selects just .config but stores it back into a
 #    new element called ".config" so the new file can be read as though it was flywheel config.json
 # - Also add some additional config params that are currently hardcoded
-OUTPUT_CONFIG_FILE=${StudyFolder}/${Subject}/${Subject}_${fMRIName}_hcpfunc_config.json 
+OUTPUT_CONFIG_FILE=${StudyFolder}/${Subject}/${Subject}_${fMRIName}_hcpfunc_config.json
 jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config | {config: .}' $CONFIG_FILE \
   | jq -r '.config.FinalfMRIResolution = "'${FinalfMRIResolution}'"' \
   | jq -r '.config.GrayordinatesResolution = "'${GrayordinatesResolution}'"' \
@@ -427,10 +436,10 @@ jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config
   | jq -r '.config.SmoothingFWHM = "'${SmoothingFWHM}'"' > ${OUTPUT_CONFIG_FILE}
 
 # If pipeline successful, zip outputs and clean up
-outputzipname=${Subject}_${fMRIName}_hcpfunc.zip 
+outputzipname=${Subject}_${fMRIName}_hcpfunc.zip
 echo -e "${CONTAINER} [$(timestamp)] Zipping output file ${outputzipname}"
 ziplistfile=${OUTPUT_DIR}/${outputzipname}.list.txt
-rm -f ${ziplistfile} 
+rm -f ${ziplistfile}
 rm -f ${OUTPUT_DIR}/${outputzipname}
 cd ${StudyFolder}
 # include all remaining files in functional output zip
