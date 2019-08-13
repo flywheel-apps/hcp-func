@@ -217,6 +217,7 @@ elif [[ -e "${FW_INPUT_GeneralElectricFieldMap}" ]]; then
 
   #GEB0InputName="${FW_INPUT_GeneralElectricFieldMap}"
   #DistortionCorrection="GeneralElectricFieldMap"
+  
 else
   echo -e "$CONTAINER  Must have a Field Map (GRE or SpinEchoFieldMap) to continue!"
   exit 1
