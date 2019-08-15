@@ -217,6 +217,10 @@ elif [[ -e "${FW_INPUT_GeneralElectricFieldMap}" ]]; then
 
   #GEB0InputName="${FW_INPUT_GeneralElectricFieldMap}"
   #DistortionCorrection="GeneralElectricFieldMap"
+  
+else
+  echo -e "$CONTAINER  Must have a Field Map (GRE or SpinEchoFieldMap) to continue!"
+  exit 1
 fi
 
 # Install FreeSurfer license
@@ -411,6 +415,14 @@ ${RUN_QC} ${SCRIPT_DIR}/hcpfunc_qc_mosaic.sh \
 
 set +x
 
+pipeline_status_code=$?
+
+if [[ $pipeline_status_code == 0 ]]; then
+  echo -e "${CONTAINER} [$(timestamp)] fMRI Surface Pipeline Success!"
+else
+  echo -e "${CONTAINER} [$(timestamp)] fMRI Surface Pipeline Failure!"
+  exit 1
+fi
 ################################################################################
 # Clean-up and prepare outputs
 
