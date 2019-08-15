@@ -3,7 +3,7 @@
 #
 
 # Use Ubuntu 14.04 LTS
-FROM flywheel/fsl-base:5.0.9
+FROM ubuntu:trusty-20170817
 
 MAINTAINER Flywheel <support@flywheel.io>
 
@@ -61,6 +61,22 @@ ENV PATH /opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:
 #############################################
 # Download and install FSL 5.0.9
 
+#Build-time key retrieval is sometimes unable to connect to keyserver.  Instead, download the public key manually and store it in plaintext
+#within repo.  You should run these commands occassionally to make sure the saved public key is up to date:
+#gpg --keyserver hkp://pgp.mit.edu:80  --recv 0xA5D32F012649A5A9 && \
+#gpg --export --armor 0xA5D32F012649A5A9 > neurodebian_pgpkey.txt && \
+#gpg --batch --yes --delete-keys 0xA5D32F012649A5A9
+
+COPY neurodebian_pgpkey.txt /tmp/
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    curl -sSL http://neuro.debian.net/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list && \
+    apt-key add /tmp/neurodebian_pgpkey.txt && \
+    apt-get update && \
+    apt-get install -y fsl-core=5.0.9-4~nd14.04+1 && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Configure FSL environment
 ENV FSLDIR=/usr/share/fsl/5.0
 ENV FSL_DIR="${FSLDIR}"
@@ -75,7 +91,7 @@ ENV FSLOUTPUTTYPE=NIFTI_GZ
 
 #############################################
 # Download and install Connectome Workbench
-RUN apt-get update && apt-get -y install connectome-workbench
+RUN apt-get update && apt-get -y install connectome-workbench=1.2.3-1~nd14.04+1
 
 ENV CARET7DIR=/usr/bin
 
