@@ -227,6 +227,9 @@ fi
 if [[ -e "${FW_INPUT_FreeSurferLicense}" ]]; then
   echo -e "$CONTAINER Copying user-supplied FreeSurfer license file to ${FREESURFER_HOME}/license.txt"
   cp -f "${FW_INPUT_FreeSurferLicense}" ${FREESURFER_HOME}/license.txt
+else
+  echo "The FreeSurfer license is required for this gear to run!"
+  exit 1
 fi
 
 
