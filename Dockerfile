@@ -2,7 +2,7 @@
 #
 #
 
-# Use Ubuntu 14.04 LTS
+# Use Ubuntu 16.04 LTS
 FROM flywheel/fsl-base:5.0.9
 
 MAINTAINER Flywheel <support@flywheel.io>
@@ -71,11 +71,12 @@ ENV POSSUMDIR=/usr/share/fsl/5.0
 ENV LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH
 ENV FSLTCLSH=/usr/bin/tclsh
 ENV FSLWISH=/usr/bin/wish
-ENV FSLOUTPUTTYPE=NIFTI_GZ
 
 #############################################
 # Download and install Connectome Workbench
-RUN apt-get update && apt-get -y install connectome-workbench
+RUN apt-get update && \
+    apt-get -y install connectome-workbench=1.3.2-2~nd16.04+1 && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ENV CARET7DIR=/usr/bin
 

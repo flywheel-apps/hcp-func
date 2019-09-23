@@ -1,0 +1,2 @@
+1) Convert sections of the run bash script to the args.{build,validate,execute} paradigm
+2) Ensure outputs, logs, .metadata is incorporated into the instance
