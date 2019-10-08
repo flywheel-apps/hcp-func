@@ -1,59 +1,13 @@
 import os, os.path as op
 import json
 import subprocess as sp
+from zipfile import ZipFile, ZIP_DEFLATED
 import shutil
+import glob
 
 
 # ################################################################################
 # # Clean-up and prepare outputs
-
-# # Delete files that came from the HCP-Structural zip input
-# cd ${StudyFolder}
-# for f in $(cat ${FilesToRemove}); do
-#   rm -f $f
-# done
-# rm -f ${FilesToRemove}
-
-# # Delete extraneous preprocessing files
-# rm -rf ${StudyFolder}/${Subject}/${fMRIName}/OneStepResampling/prevols/
-# rm -rf ${StudyFolder}/${Subject}/${fMRIName}/OneStepResampling/postvols/
-# find ${StudyFolder}/${Subject}/${fMRIName}/MotionMatrices/ -name "*.nii.gz" -delete
-
-# # Add current gear config.json to output for reference in subsequent gears
-# # - For now, don't copy full input json since it might contain identifiers from DICOM etc
-# # - add/update .config.RegName since it might not have been included in config (pre-MSM availability)
-# # - add/update .config.Subject since it might later be pulled from other session metadata
-# # - This jq call does the value replacement, then selects just .config but stores it back into a
-# #    new element called ".config" so the new file can be read as though it was flywheel config.json
-# # - Also add some additional config params that are currently hardcoded
-# OUTPUT_CONFIG_FILE=${StudyFolder}/${Subject}/${Subject}_${fMRIName}_hcpfunc_config.json
-# jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config | {config: .}' $CONFIG_FILE \
-#   | jq -r '.config.FinalfMRIResolution = "'${FinalfMRIResolution}'"' \
-#   | jq -r '.config.GrayordinatesResolution = "'${GrayordinatesResolution}'"' \
-#   | jq -r '.config.LowResMesh = "'${LowResMesh}'"' \
-#   | jq -r '.config.SmoothingFWHM = "'${SmoothingFWHM}'"' > ${OUTPUT_CONFIG_FILE}
-
-# # If pipeline successful, zip outputs and clean up
-# outputzipname=${Subject}_${fMRIName}_hcpfunc.zip
-# echo -e "${CONTAINER} [$(timestamp)] Zipping output file ${outputzipname}"
-# ziplistfile=${OUTPUT_DIR}/${outputzipname}.list.txt
-# rm -f ${ziplistfile}
-# rm -f ${OUTPUT_DIR}/${outputzipname}
-# cd ${StudyFolder}
-# # include all remaining files in functional output zip
-# find ${Subject} -type f > ${ziplistfile}
-# cat ${ziplistfile} | zip ${OUTPUT_DIR}/${outputzipname} -@ > ${OUTPUT_DIR}/${outputzipname}.log
-# rm -f ${ziplistfile}
-
-# # zip pipeline logs
-# logzipname=pipeline_logs.zip
-# echo -e "${CONTAINER} [$(timestamp)] Zipping pipeline logs to ${logzipname}"
-# cd ${OUTPUT_DIR}
-# zip -r ${OUTPUT_DIR}/${logzipname} ${LogFileDir}/ > ${OUTPUT_DIR}/${logzipname}.log
-
-# echo -e "${CONTAINER} [$(timestamp)] Cleaning output directory"
-# rm -rf ${StudyFolder}/${Subject}/
-# rm -rf ${LogFileDirFull}/
 
 def save_config(context):
     # Add current gear config.json to output for reference in subsequent gears
@@ -66,16 +20,30 @@ def save_config(context):
     for key in [
         'RegName',
         'Subject',
-        'GrayordinatesResolution',
-        'GrayordinatesTemplate',
-        'HighResMesh',
-        'LowResMesh'
+        'fMRIName',
+        'BiasCorrection',
+        'MotionCorrection',
+        'AnatomyRegDOF'
     ]:
         if key in context.config.keys():
             hcpstruct_config[key]=context.config[key]
+    
+    hcpstruct_config['FinalfMRIResolution'] = \
+                context.custom_dict['Surf-params']['fmrires']
+    hcpstruct_config['GrayordinatesResolution'] = \
+         context.custom_dict['Surf-params']['grayordinatesres']
+    hcpstruct_config['LowResMesh'] = \
+         context.custom_dict['Surf-params']['lowresmesh']
+    hcpstruct_config['SmoothingFWHM'] = \
+         context.custom_dict['Surf-params']['smoothingFWHM']
 
-    with open(op.join(context.work_dir,context.config['Subject'],
-            context.config['Subject']+'_hcpfunc_config.json'),'w') as f:
+    with open(op.join(
+                context.work_dir,context.config['Subject'],
+                '{}_{}_hcpfunc_config.json'.format(
+                    context.config['Subject'],
+                    context.config['fMRIName']
+                )
+            ),'w') as f:
         json.dump(hcpstruct_config,f)
 
 def preserve_whitelist_files(context):
@@ -83,51 +51,84 @@ def preserve_whitelist_files(context):
         if not context.custom_dict['dry-run']:
             context.log.info('Copying file to output: {}'.format(fl))
             shutil.copy(fl,context.output_dir)
-            
+
+
+
+# # If pipeline successful, zip outputs and clean up
+# outputzipname=${Subject}_${fMRIName}_hcpfunc.zip
+# echo -e "${CONTAINER} [$(timestamp)] Zipping output file ${outputzipname}"
+# ziplistfile=${OUTPUT_DIR}/${outputzipname}.list.txt
+# rm -f ${ziplistfile}
+# rm -f ${OUTPUT_DIR}/${outputzipname}
+# cd ${StudyFolder}
+# # include all remaining files in functional output zip
+# find ${Subject} -type f > ${ziplistfile}
+# cat ${ziplistfile} | zip ${OUTPUT_DIR}/${outputzipname} -@ > ${OUTPUT_DIR}/${outputzipname}.log
+# rm -f ${ziplistfile}            
 def zip_output(context):
-    environ = context.custom_dict['environ']
-    outputzipname=context.config['Subject']+'_hcpfunc.zip'
+    config = context.config
+
+    outputzipname= op.join(context.output_dir, 
+      '{}_{}_hcpfunc.zip'.format(config['Subject'],config['fMRIName']))
+    
     context.log.info('Zipping output file {}'.format(outputzipname))
-    os.chdir(context.work_dir)
+    ##################Delete extraneous preprocessing files####################
+    for dir in ['prevols','postvols']:
+        shutil.rmtree(
+            op.join(
+                context.work_dir,
+                config['Subject'],
+                config['fMRIName'],
+                'OneStepResampling',
+                dir
+            )
+        )
+
+    del_niftis = glob.glob(
+        op.join(
+            context.work_dir,
+            config['Subject'],
+            config['fMRIName'],
+            'MotionMatrices',
+            '*.nii.gz'
+        )
+    )
+    for nifti in del_niftis:
+        os.remove(nifti)
+    ############################################################################        
     try:
-        os.remove(op.join(context.output_dir,logzipname))
+        os.remove(outputzipname)
     except:
         pass
-    # To use bash redirects (e.g. >,>>,&>,..), subprocess requires a single 
-    # string and the shell=True
-    command = ['zip','-r', op.join(context.output_dir,outputzipname),
-               context.config['Subject'], '>',
-               op.join(context.output_dir,outputzipname+'.log')]
-    command = ' '.join(command)
-    context.log.info("The ZIP command is:\n"+command)
-    if not context.custom_dict['dry-run']:
-        p = sp.Popen(command, stdout=sp.PIPE, stderr=sp.PIPE, shell=True,
-                    universal_newlines=True, env=environ)
-        # Wait for Popen call to finish
-        p.communicate()
+
+    os.chdir(context.work_dir)
+    outzip = ZipFile(outputzipname,'w',ZIP_DEFLATED)
+    for root, _, files in os.walk(config['Subject']):
+        for fl in files:
+            if fl not in context.custom_dict['hcp_struct_list']:
+                outzip.write(os.path.join(root, fl))
+
+# # zip pipeline logs
+# logzipname=pipeline_logs.zip
+# echo -e "${CONTAINER} [$(timestamp)] Zipping pipeline logs to ${logzipname}"
+# cd ${OUTPUT_DIR}
+# zip -r ${OUTPUT_DIR}/${logzipname} ${LogFileDir}/ > ${OUTPUT_DIR}/${logzipname}.log
 
 def zip_pipeline_logs(context):
     # zip pipeline logs
-    environ = context.custom_dict['environ']
-    logzipname='pipeline_logs.zip'
+    logzipname=op.join(context.output_dir, 'pipeline_logs.zip')
     context.log.info('Zipping pipeline logs to {}'.format(logzipname))
-    os.chdir(context.work_dir)
+    
     try:
-        os.remove(op.join(context.output_dir,logzipname))
+        os.remove(logzipname)
     except:
         pass
-    # To use bash redirects (e.g. >,>>,&>,..), subprocess requires a single 
-    # string and the shell=True
-    command=['zip','-r', op.join(context.output_dir,logzipname),
-             op.join(context.work_dir,'logs'), '>',
-             op.join(context.output_dir,logzipname+'.log')]
-    command = ' '.join(command)
-    context.log.info("The ZIP command is:\n"+command)
-    if not context.custom_dict['dry-run']:         
-        p = sp.Popen(command, stdout=sp.PIPE, stderr=sp.PIPE, shell=True,
-                    universal_newlines=True, env=environ)
-        # Wait for Popen call to finish
-        p.communicate()
+
+    os.chdir(context.work_dir)
+    logzipfile = ZipFile(logzipname,'w',ZIP_DEFLATED)
+    for root, _, files in os.walk('logs'):
+        for fl in files:
+            logzipfile.write(os.path.join(root, fl))
 
 def cleanup(context):
     # Move all images to output directory

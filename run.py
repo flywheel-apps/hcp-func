@@ -52,7 +52,17 @@ if __name__ == '__main__':
     except Exception as e:
         context.log.error(e,)
         context.log.error('Invalid hcp-struct zip file.')
-
+    
+    # Ensure the subject_id is set in a valid manner 
+    # (api, config, or hcp-struct config)
+    try:
+        validate_config.set_subject(context)
+    except Exception as e:
+        context.log.fatal(e,)
+        context.log.fatal(
+            'The Subject ID is not valid. Examine and try again.',
+        )
+        os.sys.exit(1)
     # build and validate parameters from the two pipelines
     # Ensure the subject_id is set in a valid manner (api or config)
     try:

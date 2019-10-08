@@ -1,5 +1,6 @@
 import json
 from zipfile import ZipFile
+import re
 
 def preprocess_hcp_struct_zip(context):
     # Grab the whole file list from the hcp-struct zip,
@@ -114,3 +115,41 @@ def validate_config_against_manifest(context):
         raise Exception(
         'Your gear is not configured correctly: \n{}'.format('\n'.join(errors))
         )
+
+def set_subject(context):
+    """
+    This function queries the subject from the session only if the 
+    context.config['Subject'] is invalid or not present.
+    Exits ensuring the value of the subject is valid
+    """
+    subject = ''
+    # Subject in the gear configuration overides everything else
+    if 'Subject' in context.config.keys():
+        # Correct for non-friendly characters
+        subject = re.sub('[^0-9a-zA-Z./]+', '_', context.config['Subject'])
+        if len(subject) == 0:
+            raise Exception('Cannot have a zero-length subject.')
+    # Else, if we have the subject in the hcp-struct config
+    elif 'Subject' in context.custom_dict['hcp_struct_config'].keys():
+        hcp_struct_config = context.custom_dict['hcp_struct_config']
+        subject = hcp_struct_config['Subject']
+    # Else Use SDK to query subject
+    else:
+        # Assuming valid client
+        fw = context.client
+        # Get the analysis destination ID
+        dest_id = context.destination['id']
+        # Assume that the destination object has "subject" as a parent
+        # This will raise an exception otherwise
+        dest = fw.get(dest_id)
+        if 'subject' in dest.parents:
+            subj = fw.get(dest.parents['subject'])
+            subject = subj.label
+        else:
+            raise Exception(
+                'The current analysis container does not have a subject ' + \
+                'container as a parent.'
+            )
+    
+    context.config['Subject'] = subject
+    context.log.info('Using {} as Subject ID.'.format(subject))

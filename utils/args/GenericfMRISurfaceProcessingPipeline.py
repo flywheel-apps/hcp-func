@@ -22,8 +22,9 @@ def build(context):
     params['grayordinatesres'] = "2"
     if 'RegName' in config.keys():
         params['regname'] = config['RegName']
-    elif 'RegName' in context.custom_dict['hcp-struct'].keys():
-        params['regname'] = context.custom_dict['hcp-struct']['RegName']
+    elif 'RegName' in context.custom_dict['hcp_struct_config'].keys():
+        params['regname'] = context.custom_dict['hcp_struct_config']['RegName']
+        config['RegName'] = params['regname']
     else:
         raise Exception('Could not set "RegName" with current configuration.')
 
