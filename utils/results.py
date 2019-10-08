@@ -3,6 +3,58 @@ import json
 import subprocess as sp
 import shutil
 
+
+# ################################################################################
+# # Clean-up and prepare outputs
+
+# # Delete files that came from the HCP-Structural zip input
+# cd ${StudyFolder}
+# for f in $(cat ${FilesToRemove}); do
+#   rm -f $f
+# done
+# rm -f ${FilesToRemove}
+
+# # Delete extraneous preprocessing files
+# rm -rf ${StudyFolder}/${Subject}/${fMRIName}/OneStepResampling/prevols/
+# rm -rf ${StudyFolder}/${Subject}/${fMRIName}/OneStepResampling/postvols/
+# find ${StudyFolder}/${Subject}/${fMRIName}/MotionMatrices/ -name "*.nii.gz" -delete
+
+# # Add current gear config.json to output for reference in subsequent gears
+# # - For now, don't copy full input json since it might contain identifiers from DICOM etc
+# # - add/update .config.RegName since it might not have been included in config (pre-MSM availability)
+# # - add/update .config.Subject since it might later be pulled from other session metadata
+# # - This jq call does the value replacement, then selects just .config but stores it back into a
+# #    new element called ".config" so the new file can be read as though it was flywheel config.json
+# # - Also add some additional config params that are currently hardcoded
+# OUTPUT_CONFIG_FILE=${StudyFolder}/${Subject}/${Subject}_${fMRIName}_hcpfunc_config.json
+# jq -r '.config.RegName = "'$RegName'" | .config.Subject = "'$Subject'" | .config | {config: .}' $CONFIG_FILE \
+#   | jq -r '.config.FinalfMRIResolution = "'${FinalfMRIResolution}'"' \
+#   | jq -r '.config.GrayordinatesResolution = "'${GrayordinatesResolution}'"' \
+#   | jq -r '.config.LowResMesh = "'${LowResMesh}'"' \
+#   | jq -r '.config.SmoothingFWHM = "'${SmoothingFWHM}'"' > ${OUTPUT_CONFIG_FILE}
+
+# # If pipeline successful, zip outputs and clean up
+# outputzipname=${Subject}_${fMRIName}_hcpfunc.zip
+# echo -e "${CONTAINER} [$(timestamp)] Zipping output file ${outputzipname}"
+# ziplistfile=${OUTPUT_DIR}/${outputzipname}.list.txt
+# rm -f ${ziplistfile}
+# rm -f ${OUTPUT_DIR}/${outputzipname}
+# cd ${StudyFolder}
+# # include all remaining files in functional output zip
+# find ${Subject} -type f > ${ziplistfile}
+# cat ${ziplistfile} | zip ${OUTPUT_DIR}/${outputzipname} -@ > ${OUTPUT_DIR}/${outputzipname}.log
+# rm -f ${ziplistfile}
+
+# # zip pipeline logs
+# logzipname=pipeline_logs.zip
+# echo -e "${CONTAINER} [$(timestamp)] Zipping pipeline logs to ${logzipname}"
+# cd ${OUTPUT_DIR}
+# zip -r ${OUTPUT_DIR}/${logzipname} ${LogFileDir}/ > ${OUTPUT_DIR}/${logzipname}.log
+
+# echo -e "${CONTAINER} [$(timestamp)] Cleaning output directory"
+# rm -rf ${StudyFolder}/${Subject}/
+# rm -rf ${LogFileDirFull}/
+
 def save_config(context):
     # Add current gear config.json to output for reference in subsequent gears
     # - For now, don't copy full input json since it might contain identifiers from DICOM etc
@@ -79,6 +131,7 @@ def zip_pipeline_logs(context):
 
 def cleanup(context):
     # Move all images to output directory
+    # TODO: I can do this with a shutil...include hooks for "dry-run"
     try:
         command = 'cp '+ context.work_dir+'/*.png ' + context.output_dir + '/'
         p = sp.Popen(
