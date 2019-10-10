@@ -22,13 +22,13 @@ def build(context):
     params['grayordinatesres'] = "2"
     if 'RegName' in config.keys():
         params['regname'] = config['RegName']
-    elif 'RegName' in context.custom_dict['hcp_struct_config'].keys():
-        params['regname'] = context.custom_dict['hcp_struct_config']['RegName']
+    elif 'RegName' in context.custom_dict['hcp_struct_config']['config'].keys():
+        params['regname'] = context.custom_dict['hcp_struct_config']['config']['RegName']
         config['RegName'] = params['regname']
     else:
         raise Exception('Could not set "RegName" with current configuration.')
 
-    params['printcom'] = '""'
+    params['printcom'] = ' '
     context.custom_dict['Surf-params'] = params
     
 def validate(context):
@@ -40,7 +40,7 @@ def execute(context):
     command = []
     command.extend(context.custom_dict['command_common'])
     command.append(
-               op.join(environ['HCPPIPEDIR'],'fMRISurface'
+               op.join(environ['HCPPIPEDIR'],'fMRISurface',
                'GenericfMRISurfaceProcessingPipeline.sh')
     )
     command = build_command_list(command,context.custom_dict['Surf-params'])

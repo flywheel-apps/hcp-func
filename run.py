@@ -3,13 +3,12 @@ import json
 import os, os.path as op
 from zipfile import ZipFile
 from utils import results
-from utils import results, validate_config
+from utils import results, gear_preliminaries
 from utils.args import GenericfMRIVolumeProcessingPipeline, \
                        GenericfMRISurfaceProcessingPipeline, \
                        hcpfunc_qc_mosaic
 
 import flywheel
-from utils.args.Common import set_subject
 from utils.custom_logger import get_custom_logger
 
 if __name__ == '__main__':
@@ -28,16 +27,21 @@ if __name__ == '__main__':
     context.custom_dict ={}
     context.custom_dict['SCRIPT_DIR']    = '/tmp/scripts'
 
+    # Set dry-run parameter
+    # TODO: Integrate "dry-run" into manifest.
+    context.custom_dict['dry-run'] = True
+
     # grab environment for gear
     with open('/tmp/gear_environ.json', 'r') as f:
         environ = json.load(f)
 
     context.custom_dict['environ'] = environ
-
+    context.custom_dict['whitelist'] = []
+    context.custom_dict['metadata'] = {}
     # Before continuing from here, we need to validate the config.json
     # Validate gear configuration against gear manifest
     try:
-        validate_config.validate_config_against_manifest(context)
+        gear_preliminaries.validate_config_against_manifest(context)
     except Exception as e:
         context.log.error('Invalid Configuration:')
         context.log.fatal(e,)
@@ -48,7 +52,7 @@ if __name__ == '__main__':
 
     # Get file list and configuration from hcp-struct zipfile
     try:
-        validate_config.preprocess_hcp_struct_zip(context)
+        gear_preliminaries.preprocess_hcp_struct_zip(context)
     except Exception as e:
         context.log.error(e,)
         context.log.error('Invalid hcp-struct zip file.')
@@ -56,17 +60,7 @@ if __name__ == '__main__':
     # Ensure the subject_id is set in a valid manner 
     # (api, config, or hcp-struct config)
     try:
-        validate_config.set_subject(context)
-    except Exception as e:
-        context.log.fatal(e,)
-        context.log.fatal(
-            'The Subject ID is not valid. Examine and try again.',
-        )
-        os.sys.exit(1)
-    # build and validate parameters from the two pipelines
-    # Ensure the subject_id is set in a valid manner (api or config)
-    try:
-        set_subject(context)
+        gear_preliminaries.set_subject(context)
     except Exception as e:
         context.log.fatal(e,)
         context.log.fatal(
@@ -99,6 +93,10 @@ if __name__ == '__main__':
         os.sys.exit(1)
 
     ###########################################################################
+    # Unzip hcp-struct results
+    gear_preliminaries.unzip_hcp_struct(context)
+
+    ###########################################################################
     # Pipelines common commands
     QUEUE = ""
     LogFileDirFull = op.join(context.work_dir,'logs')
@@ -109,6 +107,7 @@ if __name__ == '__main__':
                    QUEUE, FSLSUBOPTIONS]
     
     context.custom_dict['command_common'] = command_common
+
     # Execute fMRI Volume Pipeline
     try:
         GenericfMRIVolumeProcessingPipeline.execute(context)

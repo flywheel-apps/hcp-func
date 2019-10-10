@@ -140,11 +140,10 @@ def build(context):
         # TODO: how do we handle GE fieldmap? where do we get deltaTE?
         raise Exception("Cannot currently handle GeneralElectricFieldmap!")
 
-    params['unwarpdir'] = config['StructuralUnwarpDirection']
     if 'GradientCoeff' in inputs.keys():
         params['gdcoeffs'] = context.get_input_path('GradientCoeff')
 
-    params['printcom'] = "\"\""
+    params['printcom'] = " "
 
     context.custom_dict['Vol-params'] = params
 
@@ -223,7 +222,7 @@ def execute(context):
     command = []
     command.extend(context.custom_dict['command_common'])
     command.append(
-               op.join(environ['HCPPIPEDIR'],'fMRISurface'
+               op.join(environ['HCPPIPEDIR'],'fMRIVolume',
                'GenericfMRIVolumeProcessingPipeline.sh')
                )
     command = build_command_list(command,context.custom_dict['Vol-params'])

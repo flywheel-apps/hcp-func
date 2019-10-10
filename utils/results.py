@@ -17,6 +17,8 @@ def save_config(context):
     # - This jq call does the value replacement, then selects just .config but stores it back into a
     #    new element called ".config" so the new file can be read as though it was flywheel config.json
     hcpstruct_config={}
+    config = {}
+    hcpstruct_config['config'] = config
     for key in [
         'RegName',
         'Subject',
@@ -26,15 +28,15 @@ def save_config(context):
         'AnatomyRegDOF'
     ]:
         if key in context.config.keys():
-            hcpstruct_config[key]=context.config[key]
+            config[key]=context.config[key]
     
-    hcpstruct_config['FinalfMRIResolution'] = \
+    config['FinalfMRIResolution'] = \
                 context.custom_dict['Surf-params']['fmrires']
-    hcpstruct_config['GrayordinatesResolution'] = \
+    config['GrayordinatesResolution'] = \
          context.custom_dict['Surf-params']['grayordinatesres']
-    hcpstruct_config['LowResMesh'] = \
+    config['LowResMesh'] = \
          context.custom_dict['Surf-params']['lowresmesh']
-    hcpstruct_config['SmoothingFWHM'] = \
+    config['SmoothingFWHM'] = \
          context.custom_dict['Surf-params']['smoothingFWHM']
 
     with open(op.join(
@@ -53,7 +55,6 @@ def preserve_whitelist_files(context):
             shutil.copy(fl,context.output_dir)
 
 
-
 # # If pipeline successful, zip outputs and clean up
 # outputzipname=${Subject}_${fMRIName}_hcpfunc.zip
 # echo -e "${CONTAINER} [$(timestamp)] Zipping output file ${outputzipname}"
@@ -64,7 +65,7 @@ def preserve_whitelist_files(context):
 # # include all remaining files in functional output zip
 # find ${Subject} -type f > ${ziplistfile}
 # cat ${ziplistfile} | zip ${OUTPUT_DIR}/${outputzipname} -@ > ${OUTPUT_DIR}/${outputzipname}.log
-# rm -f ${ziplistfile}            
+# rm -f ${ziplistfile}   
 def zip_output(context):
     config = context.config
 
@@ -72,41 +73,45 @@ def zip_output(context):
       '{}_{}_hcpfunc.zip'.format(config['Subject'],config['fMRIName']))
     
     context.log.info('Zipping output file {}'.format(outputzipname))
-    ##################Delete extraneous preprocessing files####################
-    for dir in ['prevols','postvols']:
-        shutil.rmtree(
+    if not context.custom_dict['dry-run']:
+        ##################Delete extraneous preprocessing files####################
+        for dir in ['prevols','postvols']:
+            try:
+                shutil.rmtree(
+                    op.join(
+                        context.work_dir,
+                        config['Subject'],
+                        config['fMRIName'],
+                        'OneStepResampling',
+                        dir
+                    )
+                )
+            except:
+                pass
+
+        del_niftis = glob.glob(
             op.join(
                 context.work_dir,
                 config['Subject'],
                 config['fMRIName'],
-                'OneStepResampling',
-                dir
+                'MotionMatrices',
+                '*.nii.gz'
             )
         )
+        for nifti in del_niftis:
+            os.remove(nifti)
+        ############################################################################        
+        try:
+            os.remove(outputzipname)
+        except:
+            pass
 
-    del_niftis = glob.glob(
-        op.join(
-            context.work_dir,
-            config['Subject'],
-            config['fMRIName'],
-            'MotionMatrices',
-            '*.nii.gz'
-        )
-    )
-    for nifti in del_niftis:
-        os.remove(nifti)
-    ############################################################################        
-    try:
-        os.remove(outputzipname)
-    except:
-        pass
-
-    os.chdir(context.work_dir)
-    outzip = ZipFile(outputzipname,'w',ZIP_DEFLATED)
-    for root, _, files in os.walk(config['Subject']):
-        for fl in files:
-            if fl not in context.custom_dict['hcp_struct_list']:
-                outzip.write(os.path.join(root, fl))
+        os.chdir(context.work_dir)
+        outzip = ZipFile(outputzipname,'w',ZIP_DEFLATED)
+        for root, _, files in os.walk(config['Subject']):
+            for fl in files:
+                if fl not in context.custom_dict['hcp_struct_list']:
+                    outzip.write(os.path.join(root, fl))
 
 # # zip pipeline logs
 # logzipname=pipeline_logs.zip

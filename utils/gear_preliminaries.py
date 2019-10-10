@@ -11,21 +11,21 @@ def preprocess_hcp_struct_zip(context):
     hcp_struct_config = {}
     zf = ZipFile(hcp_struct_zip)
     for fl in zf.filelist:
-        if not fl.is_dir():
+        if not (fl.filename[-1]=='/'): #not (fl.is_dir()):
             hcp_struct_list.append(fl.filename)
             # grab exported hcp-struct config
             if 'hcpstruct_config.json' in fl.filename:
-                json_file = zf.open(fl.filename)
-                hcp_struct_config = json.load(json_file)
+                json_str = zf.read(fl.filename).decode()
+                hcp_struct_config = json.loads(json_str)
     
     if len(hcp_struct_config) == 0:
-        raise Exception( 
+        raise Exception(
             'Could not find the hcp-struct configuration within the ' + \
             'exported zip-file, {}.'.format(context.get_input_path('StructZip'))
         )
         
     context.custom_dict['hcp_struct_list'] = hcp_struct_list
-    context.custom_dict['hcp_struct_config'] = hcp_struct_config    
+    context.custom_dict['hcp_struct_config'] = hcp_struct_config  
 
 def validate_config_against_manifest(context):
     """
@@ -130,8 +130,8 @@ def set_subject(context):
         if len(subject) == 0:
             raise Exception('Cannot have a zero-length subject.')
     # Else, if we have the subject in the hcp-struct config
-    elif 'Subject' in context.custom_dict['hcp_struct_config'].keys():
-        hcp_struct_config = context.custom_dict['hcp_struct_config']
+    elif 'Subject' in context.custom_dict['hcp_struct_config']['config'].keys():
+        hcp_struct_config = context.custom_dict['hcp_struct_config']['config']
         subject = hcp_struct_config['Subject']
     # Else Use SDK to query subject
     else:
@@ -153,3 +153,12 @@ def set_subject(context):
     
     context.config['Subject'] = subject
     context.log.info('Using {} as Subject ID.'.format(subject))
+
+def unzip_hcp_struct(context):
+    hcp_struct_zip_name = context.get_input_path('StructZip')
+    hcp_struct_zip = ZipFile(hcp_struct_zip_name,'r')
+    context.log.info(
+        'Unzipping hcp-struct file, {}'.format(hcp_struct_zip_name)
+    )
+    if not context.custom_dict['dry-run']:
+        hcp_struct_zip.extractall(context.work_dir)

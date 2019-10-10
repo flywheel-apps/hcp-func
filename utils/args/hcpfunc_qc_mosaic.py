@@ -22,7 +22,9 @@ def execute(context):
     SCRIPT_DIR = context.custom_dict['SCRIPT_DIR']
     command = [op.join(SCRIPT_DIR,'hcpfunc_qc_mosaic.sh')]
 
-    command = build_command_list(command,context.custom_dict['QC-Params'])
+    command = build_command_list(
+        command, context.custom_dict['QC-Params'], include_keys = False
+    )
 
     command.append('>')
     command.append(op.join(context.work_dir,'logs'))
