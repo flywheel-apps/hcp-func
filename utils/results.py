@@ -16,9 +16,8 @@ def save_config(context):
     # - add/update .config.Subject since it might later be pulled from other session metadata
     # - This jq call does the value replacement, then selects just .config but stores it back into a
     #    new element called ".config" so the new file can be read as though it was flywheel config.json
-    hcpstruct_config={}
     config = {}
-    hcpstruct_config['config'] = config
+    hcpstruct_config={'config': config}
     for key in [
         'RegName',
         'Subject',
@@ -31,13 +30,13 @@ def save_config(context):
             config[key]=context.config[key]
     
     config['FinalfMRIResolution'] = \
-                context.custom_dict['Surf-params']['fmrires']
+                context.gear_dict['Surf-params']['fmrires']
     config['GrayordinatesResolution'] = \
-         context.custom_dict['Surf-params']['grayordinatesres']
+         context.gear_dict['Surf-params']['grayordinatesres']
     config['LowResMesh'] = \
-         context.custom_dict['Surf-params']['lowresmesh']
+         context.gear_dict['Surf-params']['lowresmesh']
     config['SmoothingFWHM'] = \
-         context.custom_dict['Surf-params']['smoothingFWHM']
+         context.gear_dict['Surf-params']['smoothingFWHM']
 
     with open(op.join(
                 context.work_dir,context.config['Subject'],
@@ -46,11 +45,11 @@ def save_config(context):
                     context.config['fMRIName']
                 )
             ),'w') as f:
-        json.dump(hcpstruct_config,f)
+        json.dump(hcpstruct_config, f, indent=4)
 
 def preserve_whitelist_files(context):
-    for fl in context.custom_dict['whitelist']:
-        if not context.custom_dict['dry-run']:
+    for fl in context.gear_dict['whitelist']:
+        if not context.gear_dict['dry-run']:
             context.log.info('Copying file to output: {}'.format(fl))
             shutil.copy(fl,context.output_dir)
 
@@ -73,7 +72,7 @@ def zip_output(context):
       '{}_{}_hcpfunc.zip'.format(config['Subject'],config['fMRIName']))
     
     context.log.info('Zipping output file {}'.format(outputzipname))
-    if not context.custom_dict['dry-run']:
+    if not context.gear_dict['dry-run']:
         ##################Delete extraneous preprocessing files####################
         for dir in ['prevols','postvols']:
             try:
@@ -110,7 +109,7 @@ def zip_output(context):
         outzip = ZipFile(outputzipname,'w',ZIP_DEFLATED)
         for root, _, files in os.walk(config['Subject']):
             for fl in files:
-                if fl not in context.custom_dict['hcp_struct_list']:
+                if fl not in context.gear_dict['hcp_struct_list']:
                     outzip.write(os.path.join(root, fl))
 
 # # zip pipeline logs
@@ -152,8 +151,8 @@ def cleanup(context):
     zip_pipeline_logs(context)
     preserve_whitelist_files(context)
     # Write Metadata to file
-    if 'analysis' in context.custom_dict['metadata'].keys():
-        info = context.custom_dict['metadata']['analysis']['info']
+    if 'analysis' in context.gear_dict['metadata'].keys():
+        info = context.gear_dict['metadata']['analysis']['info']
         ## TODO: The below is a work around until we get the .metadata.json 
         ## file functionality working
         # Initialize the flywheel client

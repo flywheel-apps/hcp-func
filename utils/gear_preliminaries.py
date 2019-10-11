@@ -24,8 +24,8 @@ def preprocess_hcp_struct_zip(context):
             'exported zip-file, {}.'.format(context.get_input_path('StructZip'))
         )
         
-    context.custom_dict['hcp_struct_list'] = hcp_struct_list
-    context.custom_dict['hcp_struct_config'] = hcp_struct_config  
+    context.gear_dict['hcp_struct_list'] = hcp_struct_list
+    context.gear_dict['hcp_struct_config'] = hcp_struct_config  
 
 def validate_config_against_manifest(context):
     """
@@ -130,8 +130,8 @@ def set_subject(context):
         if len(subject) == 0:
             raise Exception('Cannot have a zero-length subject.')
     # Else, if we have the subject in the hcp-struct config
-    elif 'Subject' in context.custom_dict['hcp_struct_config']['config'].keys():
-        hcp_struct_config = context.custom_dict['hcp_struct_config']['config']
+    elif 'Subject' in context.gear_dict['hcp_struct_config']['config'].keys():
+        hcp_struct_config = context.gear_dict['hcp_struct_config']['config']
         subject = hcp_struct_config['Subject']
     # Else Use SDK to query subject
     else:
@@ -160,5 +160,5 @@ def unzip_hcp_struct(context):
     context.log.info(
         'Unzipping hcp-struct file, {}'.format(hcp_struct_zip_name)
     )
-    if not context.custom_dict['dry-run']:
+    if not context.gear_dict['dry-run']:
         hcp_struct_zip.extractall(context.work_dir)

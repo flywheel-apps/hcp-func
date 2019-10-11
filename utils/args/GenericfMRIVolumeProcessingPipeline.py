@@ -1,18 +1,20 @@
 import os, os.path as op
 import shutil
+from collections import OrderedDict
 from tr import tr
+import re
 from .common import build_command_list, exec_command
 
 def build(context):
     config = context.config
     inputs = context._invocation['inputs']
-    environ = context.custom_dict['environ']
+    environ = context.gear_dict['environ']
 
     # Install FreeSurfer license file
     shutil.copy(context.get_input_path('FreeSurferLicense'),
                 op.join(environ['FREESURFER_HOME'],'license.txt'))
 
-    params = {}
+    params = OrderedDict()
     
     # Initialize "NONE"s
     params['unwarpdir'] = "" #must be correctly derived from metadata
@@ -86,6 +88,7 @@ def build(context):
             echotime1 = inputs["SiemensGREMagnitude"]['object']['info']['EchoTime']
             echotime2 = inputs["SiemensGREPhase"]['object']['info']['EchoTime']
             params['echodiff'] = (echotime2 - echotime1) * 1000.0
+            params['echodiff'] = format(params['echodiff'],'.15f')
     # Else if TOPUP
     elif (
         ('SpinEchoNegative' in inputs.keys()) and
@@ -97,44 +100,42 @@ def build(context):
         # Topup config if using TOPUP, set to NONE if using regular FIELDMAP
         params['topupconfig'] = environ['HCPPIPEDIR_Config'] + "/b02b0.cnf"
         if (
-            'EffectiveEchoSpacing' in
+            ('PhaseEncodingDirection' in
             inputs["SpinEchoPositive"]['object']['info'].keys()
+            )
+            and
+            ('PhaseEncodingDirection' in
+            inputs["SpinEchoNegative"]['object']['info'].keys()
+            )
         ):
-            params['seechospacing'] = \
-                inputs["SpinEchoPositive"]['object']['info']['EffectiveEchoSpacing']
+            pedirSE1 = \
+                inputs["SpinEchoPositive"]['object']['info']['PhaseEncodingDirection']
+            pedirSE2 = \
+                inputs["SpinEchoNegative"]['object']['info']['PhaseEncodingDirection']
+            pedirSE1 = tr("ijk", "xyz", pedirSE1)
+            pedirSE2 = tr("ijk", "xyz", pedirSE2)
+
+            pedirfMRI_plane = re.sub(r'[+-]','', params['unwarpdir'])
+            pedirSE_plane = re.sub(r'[+-]','', pedirSE1)
+
+            # Check SpinEcho phase-encoding directions
             if (
-                ('PhaseEncodingDirection' in
-                inputs["SpinEchoPositive"]['object']['info'].keys()
-                )
-                and
-                ('PhaseEncodingDirection' in
-                inputs["SpinEchoNegative"]['object']['info'].keys()
-                )
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("x", "x", "x-")) or
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("y", "y", "y-"))
             ):
-                pedirSE1 = \
-                   inputs["SpinEchoPositive"]['object']['info']['PhaseEncodingDirection']
-                pedirSE2 = \
-                   inputs["SpinEchoNegative"]['object']['info']['PhaseEncodingDirection']
-                pedirSE1 = tr("ijk", "xyz", pedirSE1)
-                pedirSE2 = tr("ijk", "xyz", pedirSE2)
-                # Check SpinEcho phase-encoding directions
-                if (
-                    ((pedirSE1, pedirSE2) == ("x", "x-")) or
-                    ((pedirSE1, pedirSE2) == ("y", "y-"))
-                ):
-                    params['SEPhasePos'] = SpinEchoPhase1
-                    params['SEPhaseNeg'] = SpinEchoPhase2
-                elif (
-                    ((pedirSE1, pedirSE2) == ("x-", "x")) or
-                    ((pedirSE1, pedirSE2) == ("y-", "y"))
-                ):
-                    params['SEPhasePos'] = SpinEchoPhase2
-                    params['SEPhaseNeg'] = SpinEchoPhase1
-                    context.log.warning(
-                        "SpinEcho phase-encoding directions were swapped. \
-                         Continuing!")
-                params['seunwarpdir'] = pedirSE1.replace(
-                    '-', '').replace('+', '')
+                params['SEPhasePos'] = SpinEchoPhase1
+                params['SEPhaseNeg'] = SpinEchoPhase2
+            elif (
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("x", "x-", "x")) or
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("y", "y-", "y"))
+            ):
+                params['SEPhasePos'] = SpinEchoPhase2
+                params['SEPhaseNeg'] = SpinEchoPhase1
+                context.log.warning(
+                    "SpinEcho phase-encoding directions were swapped. \
+                        Continuing!")
+            # The following parameter is not used. 
+            # params['seunwarpdir'] = pedirSE_plane
     # Else if General Electric Field Map
     elif "GeneralElectricFieldMap" in inputs.keys():
         # TODO: how do we handle GE fieldmap? where do we get deltaTE?
@@ -145,7 +146,7 @@ def build(context):
 
     params['printcom'] = " "
 
-    context.custom_dict['Vol-params'] = params
+    context.gear_dict['Vol-params'] = params
 
 def validate(context):
     """
@@ -153,7 +154,7 @@ def validate(context):
     Raise Exceptions and exit if not valid.
     """
 
-    params = context.custom_dict['Vol-params']
+    params = context.gear_dict['Vol-params']
     inputs = context._invocation['inputs']    
 
     if (params['dcmethod']!= "TOPUP") and (params['biascorrection']=='SEBased'):
@@ -165,12 +166,12 @@ def validate(context):
         ('SiemensGREMagnitude' in inputs.keys()) and
         ('SiemensGREPhase' in inputs.keys())
     ):
-        if 'echodiff' in params.keys():
-            if params['echodiff'] == 0:
-                raise Exception(
-                    'EchoTime1 and EchoTime2 are the same \
-                        (Please ensure Magnitude input is TE1)! Exiting.')
-        else:
+        
+        if params['echodiff'] == 0:
+            raise Exception(
+                'EchoTime1 and EchoTime2 are the same \
+                    (Please ensure Magnitude input is TE1)! Exiting.')
+        elif params['echodiff'] == 'NONE':
             raise Exception(
                 'No EchoTime metadata found in FieldMap input file!  Exiting.')
     # Examine TOPUP input
@@ -194,19 +195,23 @@ def validate(context):
                 raise Exception(
                     "SpinEchoPositive and SpinEchoNegative have the same \
                         PhaseEncodingDirection " + str(pedirSE1) + " !")
-            if (
-               not (( (pedirSE1, pedirSE2) == ("x", "x-")) or
-                ( (pedirSE1, pedirSE2) ==  ("y","y-") )) and
-               not (( (pedirSE1, pedirSE2) ==  ("x-", "x")) or
-                ( (pedirSE1, pedirSE2) ==  ("y-","y")))
+            
+            pedirfMRI_plane = re.sub(r'[+-]','', params['unwarpdir'])
+
+            # Check SpinEcho phase-encoding directions
+            if not (
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("x", "x", "x-")) or
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("y", "y", "y-")) or
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("x", "x-", "x")) or
+                ((pedirfMRI_plane, pedirSE1, pedirSE2) == ("y", "y-", "y"))
             ):
-                    raise Exception(
-                        "Unrecognized SpinEcho phase-encoding directions " +
-                        str(pedirSE1) + ", " + str(pedirSE2) + ".")
-        else:
-            raise Exception(
-                "SpinEchoPositive or SpinEchoNegative input \
-                is missing PhaseEncodingDirection metadata!")
+                raise Exception(
+                "SpinEcho phase-encoding directions " + \
+                "({},{}) ".format(pedirSE1,pedirSE2) + \
+                "invalid or do not match fMRI acquisition " + \
+                "plane ({}).".format(pedirfMRI_plane)
+                )
+
     elif "GeneralElectricFieldMap" in inputs.keys():
         raise Exception("Cannot currently handle GeneralElectricFieldmap!")
 
@@ -214,18 +219,18 @@ def validate(context):
 def execute(context):
     # We want to take care of delivering the directory structure right away
     # when we unzip the hcp-struct zip
-    environ = context.custom_dict['environ']
+    environ = context.gear_dict['environ']
     config = context.config
     os.makedirs(context.work_dir+'/'+ config['Subject'], exist_ok=True)
 
     # Start by building command to execute
     command = []
-    command.extend(context.custom_dict['command_common'])
+    command.extend(context.gear_dict['command_common'])
     command.append(
                op.join(environ['HCPPIPEDIR'],'fMRIVolume',
                'GenericfMRIVolumeProcessingPipeline.sh')
                )
-    command = build_command_list(command,context.custom_dict['Vol-params'])
+    command = build_command_list(command,context.gear_dict['Vol-params'])
 
     stdout_msg = 'Pipeline logs (stdout, stderr) will be available ' + \
                  'in the file "pipeline_logs.zip" upon completion.'

@@ -21,23 +21,23 @@ if __name__ == '__main__':
 
     context.log_config()
 
-    # This gear will use a "custom_dict" dictionary as a custom-user field 
+    # This gear will use a "gear_dict" dictionary as a custom-user field 
     # on the gear context.
     # TODO: change all of these to "gear_dict"
-    context.custom_dict ={}
-    context.custom_dict['SCRIPT_DIR']    = '/tmp/scripts'
+    context.gear_dict ={}
+    context.gear_dict['SCRIPT_DIR']    = '/tmp/scripts'
 
     # Set dry-run parameter
     # TODO: Integrate "dry-run" into manifest.
-    context.custom_dict['dry-run'] = True
+    context.gear_dict['dry-run'] = True
 
     # grab environment for gear
     with open('/tmp/gear_environ.json', 'r') as f:
         environ = json.load(f)
 
-    context.custom_dict['environ'] = environ
-    context.custom_dict['whitelist'] = []
-    context.custom_dict['metadata'] = {}
+    context.gear_dict['environ'] = environ
+    context.gear_dict['whitelist'] = []
+    context.gear_dict['metadata'] = {}
     # Before continuing from here, we need to validate the config.json
     # Validate gear configuration against gear manifest
     try:
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     command_common=[op.join(environ['FSLDIR'],'bin','fsl_sub'),
                    QUEUE, FSLSUBOPTIONS]
     
-    context.custom_dict['command_common'] = command_common
+    context.gear_dict['command_common'] = command_common
 
     # Execute fMRI Volume Pipeline
     try:

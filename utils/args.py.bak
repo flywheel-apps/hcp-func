@@ -11,22 +11,22 @@ def build(context):
     # Default in Python 3.6 onward
     params=OrderedDict()
 
-    context.custom_dict['params'] = params
+    context.gear_dict['params'] = params
 
 def validate(context):
     """
-    Input: gear context with parameters in context.custom_dict['params']
+    Input: gear context with parameters in context.gear_dict['params']
     Attempts to correct any violations
     Logs warning on what may cause problems
     """
-    params = context.custom_dict['params']
+    params = context.gear_dict['params']
 
 def execute(context, dry_run=True):
         # Get Params
-        params = context.custom_dict['params']
+        params = context.gear_dict['params']
 
-        commandD = context.custom_dict['commandD']
-        environ = context.custom_dict['environ']
+        commandD = context.gear_dict['commandD']
+        environ = context.gear_dict['environ']
 
         # Build command-line parameters
         command = Build_Command_List(commandD['prefix'], params)

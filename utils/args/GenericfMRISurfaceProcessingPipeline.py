@@ -22,28 +22,28 @@ def build(context):
     params['grayordinatesres'] = "2"
     if config['RegName'] != 'Empty':
         params['regname'] = config['RegName']
-    elif 'RegName' in context.custom_dict['hcp_struct_config']['config'].keys():
-        params['regname'] = context.custom_dict['hcp_struct_config']['config']['RegName']
+    elif 'RegName' in context.gear_dict['hcp_struct_config']['config'].keys():
+        params['regname'] = context.gear_dict['hcp_struct_config']['config']['RegName']
         config['RegName'] = params['regname']
     else:
         raise Exception('Could not set "RegName" with current configuration.')
 
     params['printcom'] = ' '
-    context.custom_dict['Surf-params'] = params
+    context.gear_dict['Surf-params'] = params
     
 def validate(context):
     pass 
 
 def execute(context):
-    environ = context.custom_dict['environ']
+    environ = context.gear_dict['environ']
     # Start by building command to execute
     command = []
-    command.extend(context.custom_dict['command_common'])
+    command.extend(context.gear_dict['command_common'])
     command.append(
                op.join(environ['HCPPIPEDIR'],'fMRISurface',
                'GenericfMRISurfaceProcessingPipeline.sh')
     )
-    command = build_command_list(command,context.custom_dict['Surf-params'])
+    command = build_command_list(command,context.gear_dict['Surf-params'])
 
     stdout_msg = 'Pipeline logs (stdout, stderr) will be available ' + \
                  'in the file "pipeline_logs.zip" upon completion.'
