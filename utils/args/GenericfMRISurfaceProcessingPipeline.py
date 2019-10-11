@@ -20,7 +20,7 @@ def build(context):
     params['smoothingFWHM'] = params['fmrires']
     # GrayordinatesResolution usually 2mm ("1.60" also available)
     params['grayordinatesres'] = "2"
-    if 'RegName' in config.keys():
+    if config['RegName'] != 'Empty':
         params['regname'] = config['RegName']
     elif 'RegName' in context.custom_dict['hcp_struct_config']['config'].keys():
         params['regname'] = context.custom_dict['hcp_struct_config']['config']['RegName']

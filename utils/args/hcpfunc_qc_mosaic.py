@@ -33,4 +33,4 @@ def execute(context):
                  'in the file "pipeline_logs.zip" upon completion.'
 
     context.log.info('Functional QC Image Generation command: \n')
-    exec_command(context, command, stdout_msg = stdout_msg)
+    exec_command(context, command, shell = True, stdout_msg = stdout_msg)
