@@ -6,7 +6,7 @@ def build(context):
     config = context.config
     params = OrderedDict()
     params['qc_scene_root'] = op.join(context.work_dir, config['Subject'])
-    params['qc_output_folder'] = context.work_dir
+    params['fMRIName'] = config['fMRIName']
     params['qc_image_root'] = op.join(
         op.join(
             context.output_dir,config['Subject'] + \
@@ -27,7 +27,7 @@ def execute(context):
     )
 
     command.append('>')
-    command.append(op.join(context.work_dir,'logs'))
+    command.append(op.join(context.work_dir,'logs','functionalqc.log'))
 
     stdout_msg = 'Pipeline logs (stdout, stderr) will be available ' + \
                  'in the file "pipeline_logs.zip" upon completion.'

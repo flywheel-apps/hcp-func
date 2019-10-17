@@ -89,7 +89,7 @@ nimages=math.ceil(nslices/nsteps)
 nmos1=math.ceil(math.sqrt(nimages))
 nmos2=math.ceil(nimages/nmos1)
 imgwidth=math.ceil(imgscale*slicewidth)*nmos1
-print int(imgwidth)")
+print(int(imgwidth))")
 
 #set -x
 slicer $newvol $newvol2 $options -S $nsteps $imgwidth $outputimage

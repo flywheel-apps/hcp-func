@@ -2,8 +2,8 @@
 #
 #
 
-# Use Ubuntu 14.04 LTS
-FROM flywheel/fsl-base:5.0.9_trusty
+# Use Ubuntu 16.04 LTS
+FROM flywheel/fsl-base:6.0.1
 
 LABEL maintainer="Flywheel <support@flywheel.io>"
 
@@ -11,13 +11,13 @@ LABEL maintainer="Flywheel <support@flywheel.io>"
 # FSL 5.0.9 is a part of the base image.  Update the environment variables
 
 # Configure FSL environment
-ENV FSLDIR=/usr/share/fsl/5.0
+ENV FSLDIR=/usr/share/fsl/6.0
 ENV FSL_DIR="${FSLDIR}"
 ENV FSLOUTPUTTYPE=NIFTI_GZ
-ENV PATH=/usr/lib/fsl/5.0:$PATH
+ENV PATH=/usr/share/fsl/6.0/bin:$PATH
 ENV FSLMULTIFILEQUIT=TRUE
-ENV POSSUMDIR=/usr/share/fsl/5.0
-ENV LD_LIBRARY_PATH=/usr/lib/fsl/5.0:$LD_LIBRARY_PATH
+ENV POSSUMDIR=/usr/share/fsl/6.0
+ENV LD_LIBRARY_PATH=/usr/share/fsl/6.0/lib:$LD_LIBRARY_PATH
 ENV FSLTCLSH=/usr/bin/tclsh
 ENV FSLWISH=/usr/bin/wish
 
@@ -35,8 +35,8 @@ ENV CARET7DIR=/opt/workbench/bin_linux64
 #############################################
 # Download and install HCP Pipelines
 
-# Using v4.0.0
-RUN wget -nv https://github.com/Washington-University/HCPpipelines/archive/v4.0.0.tar.gz -O pipelines.tar.gz && \
+# Using v4.0.1
+RUN wget -nv https://github.com/Washington-University/HCPpipelines/archive/v4.0.1.tar.gz -O pipelines.tar.gz && \
     cd /opt/ && \
     tar zxvf /pipelines.tar.gz && \
     mv /opt/*ipelines* /opt/HCP-Pipelines && \
@@ -77,9 +77,11 @@ RUN unset POSIXLY_CORRECT
 
 #############################################
 # Download and install FreeSurfer
+# 6.0.1 ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz
+# 5.3.0 ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos4_x86_64-stable-pub-v5.3.0-HCP.tar.gz
 RUN apt-get -y update \
     && apt-get install -y wget && \
-    wget -nv -O- ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos4_x86_64-stable-pub-v5.3.0-HCP.tar.gz | tar zxv -C /opt \
+    wget -nv -O- ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv -C /opt \
     --exclude='freesurfer/trctrain' \
     --exclude='freesurfer/subjects/fsaverage_sym' \
     --exclude='freesurfer/subjects/fsaverage3' \
@@ -115,20 +117,21 @@ ENV PATH /opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:
 
 #############################################
 # Download and install gradient unwarp script
-# note: python-dev needed for Ubuntu 14.04 (but not for 16.04)
+# note: python2.7 is needed for the fsl installer, but not again
+# note: python3-dev needed for Ubuntu 14.04 (but not for 16.04)
 # latest = v1.0.3
-RUN apt-get -y update \
-    && apt-get install -y --no-install-recommends \ 
-    python-dev \
-    python-numpy \
-    python-scipy \
-    python-nibabel && \
+RUN apt-get -y update && \
+    apt-get install -y --no-install-recommends \ 
+    python3-dev \
+    python3-numpy \
+    python3-scipy \
+    python3-nibabel && \
     wget -nv https://github.com/Washington-University/gradunwarp/archive/v1.0.3.tar.gz -O gradunwarp.tar.gz && \
     cd /opt/ && \
     tar zxvf /gradunwarp.tar.gz && \
     mv /opt/gradunwarp-* /opt/gradunwarp && \
     cd /opt/gradunwarp/ && \
-    python setup.py install && \
+    python3 setup.py install && \
     rm /gradunwarp.tar.gz && \
     cd / 
 
@@ -156,7 +159,22 @@ RUN apt-get install -y --no-install-recommends \
     gzip && \
     pip3 install --upgrade pip && \
     apt-get remove -y python3-urllib3 && \
-    pip3.4 install -r requirements.txt && \
+    pip3.5 install -r requirements.txt
+
+# Install additional HCP requirements not mentioned previously specified
+# and clean up python2.7,apt cache, and pip cache
+RUN apt-get install -y --no-install-recommends \
+    libxmu6 \
+    libxi6 \
+    libxt6 \
+    libx11-6 \
+    libglu1-mesa \
+    libblas3 \
+    liblapack3 \
+    zlib1g && \
+    apt-get -y purge python2.7-minimal && \
+    apt-get -y autoremove && \
+    update-alternatives --install /usr/bin/python python /usr/bin/python3 10 && \
     rm -rf /root/.cache/pip && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -170,7 +188,7 @@ COPY scripts /tmp/scripts
 
 
 # ENV preservation for Flywheel Engine
-RUN python -c 'import os, json; f = open("/tmp/gear_environ.json", "w"); json.dump(dict(os.environ), f)'
+RUN python3 -c 'import os, json; f = open("/tmp/gear_environ.json", "w"); json.dump(dict(os.environ), f)'
 
 # Configure entrypoint
 ENTRYPOINT ["/flywheel/v0/run.py"]
