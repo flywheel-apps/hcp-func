@@ -155,8 +155,19 @@ def validate(context):
     """
 
     params = context.gear_dict['Vol-params']
-    inputs = context._invocation['inputs']    
+    inputs = context._invocation['inputs']
 
+    # A Distortion Correction method is reauired for fMRI Volume Processing
+    if params['dcmethod']== "NONE":
+        raise Exception(
+            'Distortion Correction must be either "TOPUP" or ' + \
+            '"SiemensFieldMap" to proceed with fMRI Volume Processing.' + \
+            'Please provide valid Spin Echo Positive/Negative or ' + \
+            'Siemens GRE Phase/Magnitude field maps.'
+        )
+
+    # Ensure that SE-Based BiasCorrection is only used with TOPUP
+    # Distortion Correction
     if (params['dcmethod']!= "TOPUP") and (params['biascorrection']=='SEBased'):
         raise Exception('SE-Based BiasCorrection only available when ' + \
             'providing Pos and Neg SpinEchoFieldMap scans')

@@ -169,6 +169,7 @@ RUN apt-get install -y --no-install-recommends \
     libxt6 \
     libx11-6 \
     libglu1-mesa \
+    libfreetype6 \
     libblas3 \
     liblapack3 \
     zlib1g && \

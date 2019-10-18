@@ -7,9 +7,10 @@ def build(context):
     params = OrderedDict()
     params['qc_scene_root'] = op.join(context.work_dir, config['Subject'])
     params['fMRIName'] = config['fMRIName']
+    # qc_image_root indicates where the images are going
     params['qc_image_root'] = op.join(
         op.join(
-            context.output_dir,config['Subject'] + \
+            context.work_dir,config['Subject'] + \
             '_{}.hcp_func_QC.'.format(config['fMRIName'])
         )
     )

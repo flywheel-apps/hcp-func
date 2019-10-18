@@ -23,13 +23,11 @@ if __name__ == '__main__':
 
     # This gear will use a "gear_dict" dictionary as a custom-user field 
     # on the gear context.
-    # TODO: change all of these to "gear_dict"
     context.gear_dict ={}
-    context.gear_dict['SCRIPT_DIR']    = '/tmp/scripts'
+    context.gear_dict['SCRIPT_DIR'] = '/tmp/scripts'
 
     # Set dry-run parameter
-    # TODO: Integrate "dry-run" into manifest.
-    context.gear_dict['dry-run'] = True
+    context.gear_dict['dry-run'] = context.config['Dry-Run']
 
     # grab environment for gear
     with open('/tmp/gear_environ.json', 'r') as f:
@@ -142,4 +140,4 @@ if __name__ == '__main__':
     ###########################################################################
     # Clean-up and output prep
     results.cleanup(context)
-    os.sys.exit(0)       
+    os.sys.exit(0)

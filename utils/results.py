@@ -109,9 +109,10 @@ def zip_output(context):
         outzip = ZipFile(outputzipname,'w',ZIP_DEFLATED)
         for root, _, files in os.walk(config['Subject']):
             for fl in files:
-                if fl not in context.gear_dict['hcp_struct_list']:
-                    outzip.write(os.path.join(root, fl))
-
+                fl_path = op.join(root,fl)
+                if fl_path not in context.gear_dict['hcp_struct_list']:
+                    outzip.write(fl_path)
+        outzip.close()
 # # zip pipeline logs
 # logzipname=pipeline_logs.zip
 # echo -e "${CONTAINER} [$(timestamp)] Zipping pipeline logs to ${logzipname}"
