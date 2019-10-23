@@ -1,34 +1,9 @@
 import os, os.path as op
 import subprocess as sp
 import re
+import logging
 
-# Rewrite to attempt to grab "subject" from hcp-struct
-def set_subject(context):
-    """
-    This function queries the subject from the session only if the 
-    context.config['Subject'] is invalid or not present.
-    Exits ensuring the value of the subject is valid
-    """
-
-    if 'Subject' in context.config.keys():
-        # Correct for non-friendly characters
-        subject = re.sub('[^0-9a-zA-Z./]+', '_', context.config['Subject'])
-        if len(subject) > 0:
-            context.config['Subject'] = subject
-            return 
-
-    # Assuming valid client
-    fw = context.client
-    # Get the analysis destination ID
-    dest_id = context.destination['id']
-    # Assume that the destination object has "subject" as a parent
-    dest = fw.get(dest_id)
-    subj = fw.get(dest.parents['subject'])
-    subject = subj.label
-    # return the label of that subject
-    context.config['Subject'] = subject
-    context.log.info('Using {} as Subject ID.'.format(subject))
-
+log = logging.getLogger(__name__)
 
 def build_command_list(command, ParamList, include_keys=True):
     """
@@ -63,27 +38,60 @@ def build_command_list(command, ParamList, include_keys=True):
                 command.append(item)
     return command
 
-def exec_command(context,command,shell=False,stdout_msg=None):
+def exec_command(context,command,shell=False,stdout_msg=None,cont_output=False):
+    """
+    This is a generic abstraction to execute shell commands using the subprocess
+    module. Parameters are
+    - context: the gear context. Used for the environment and dry-run flags
+    - command: list of command-line parameters, starting with the command to run
+    - shell: whether or not to execute as a single shell string, redirects
+    - stdout_msg: Used to indicate whether the output is redirected
+    - cont_output: Used to provide continuous output of stdout without waiting
+                   until the completion of the shell command
+    """
     environ = context.gear_dict['environ']
-    context.log.info('Executing command: \n' + ' '.join(command)+'\n\n')
+    log.info('Executing command: \n' + ' '.join(command)+'\n\n')
     if not context.gear_dict['dry-run']:
         # The 'shell' parameter is needed for bash output redirects 
         # (e.g. >,>>,&>)
         if shell:
-            command = ' '.join(command)
-        result = sp.Popen(command, stdout=sp.PIPE, stderr=sp.PIPE,
+            run_command = ' '.join(command)
+        else:
+            run_command = command
+
+        result = sp.Popen(run_command, stdout=sp.PIPE, stderr=sp.PIPE,
                         universal_newlines=True, env=environ, shell=shell)
 
-        stdout, stderr = result.communicate()
-        context.log.info('Command return code: {}'.format(result.returncode))
+        # Wait until command is complete and the "communicate" stored output.
+        # TODO: integrate the potential for continuous stdout reporting...
+        #       reserving stderr errors for the end... and if agregious enough
+        #       raise exception.
 
-        if stdout_msg==None:
-            context.log.info(stdout)
+        # log that we are using an alternate stdout message
+        if stdout_msg!=None:
+            log.info(stdout_msg)
+
+        # if continuous stdout is desired... and we are not redirecting output
+        if cont_output and not (shell and ('>' in command)) \
+            and (stdout_msg==None):
+            while True:
+                stdout = result.stdout.readline()
+                if stdout == '' and result.poll() is not None:
+                    break
+                if stdout:
+                    log.info(stdout)
+            returncode = result.poll()
+            
         else:
-            context.log.info(stdout_msg)
+            stdout, stderr = result.communicate()
+            returncode = result.returncode
+            if stdout_msg==None:
+                log.info(stdout)
+
+        log.info('Command return code: {}'.format(returncode))
 
         if result.returncode != 0:
-            context.log.error('The command:\n ' +
+            log.error('The command:\n ' +
                               ' '.join(command) +
                               '\nfailed.')
             raise Exception(stderr)

@@ -4,7 +4,9 @@ from collections import OrderedDict
 from tr import tr
 import re
 from .common import build_command_list, exec_command
+import logging
 
+log = logging.getLogger(__name__)
 def build(context):
     config = context.config
     inputs = context._invocation['inputs']
@@ -16,10 +18,13 @@ def build(context):
 
     params = OrderedDict()
     
-    # Initialize "NONE"s
-    params['unwarpdir'] = "" #must be correctly derived from metadata
-    #use "FLIRT" to run FLIRT-based mcflirt_acc.sh, or "MCFLIRT" to run MCFLIRT-based mcflirt.sh
+    # Initialize parameters.
+    # 'unwarpdir' must be correctly derived from metadata
+    params['unwarpdir'] = "" 
+    # use "FLIRT" to run FLIRT-based mcflirt_acc.sh, or "MCFLIRT" to 
+    # run MCFLIRT-based mcflirt.sh
     params['mctype'] = "MCFLIRT"  
+    # Initialize "NONE"s
     None_Params = [
         'echodiff', 
         'echospacing',
@@ -39,6 +44,7 @@ def build(context):
     params['path'] = context.work_dir
     # The subject may have three different ways to be set:
     # 1) UI 2) hcp-struct.json zip 3) container
+    # this is set in utils/gear_preliminaries.py:set_subject.
     params['subject'] = config['Subject']
     params['fmriname'] = config['fMRIName']
     params['fmritcs'] = context.get_input_path('fMRITimeSeries')
@@ -52,24 +58,17 @@ def build(context):
     if 'EffectiveEchoSpacing' in obj['info'].keys():
         params['echospacing'] = obj['info']['EffectiveEchoSpacing']
         
-    obj = inputs['fMRITimeSeries']['object']
     if 'PhaseEncodingDirection' in obj['info'].keys():
        params['unwarpdir'] = tr("ijk", "xyz", 
                                 obj['info']['PhaseEncodingDirection'])
 
-    #****config option?****** #generally "2", "1.60"
+    # TODO: **??config option??** #generally "2", but "1.60" an option
     params['fmrires'] = "2"
 
-    #Topup config if using TOPUP, set to NONE if using regular FIELDMAP
-    params['topupconfig']=op.join(environ['HCPPIPEDIR_Config'],'b02b0.cnf')
-
-    # TODO: BiasCorrection must be NONE, Legacy, or SEBased! enum default NONE
     params['biascorrection'] = config['BiasCorrection']
 
-    # TODO: MotionCorrection must be MCFLIRT or FLIRT!, enum default MCFLIRT
     params['mctype'] = config['MotionCorrection']
 
-    # TODO: DOF must be 6 or 12 (put in ENUM), default 6
     params['dof'] = config['AnatomyRegDOF']
 
     # Parse Inputs
@@ -81,6 +80,8 @@ def build(context):
         params['fmapmag'] = context.get_input_path('SiemensGREMagnitude')
         params['fmapphase'] = context.get_input_path('SiemensGREPhase')
         params['dcmethod'] = "SiemensFieldMap"
+        params['topupconfig'] = "NONE"
+
         if (
           ('EchoTime' in inputs["SiemensGREMagnitude"]['object']['info'].keys()) and
           ('EchoTime' in inputs["SiemensGREPhase"]['object']['info'].keys())
@@ -101,11 +102,11 @@ def build(context):
         params['topupconfig'] = environ['HCPPIPEDIR_Config'] + "/b02b0.cnf"
         if (
             ('PhaseEncodingDirection' in
-            inputs["SpinEchoPositive"]['object']['info'].keys()
+                inputs["SpinEchoPositive"]['object']['info'].keys()
             )
             and
             ('PhaseEncodingDirection' in
-            inputs["SpinEchoNegative"]['object']['info'].keys()
+                inputs["SpinEchoNegative"]['object']['info'].keys()
             )
         ):
             pedirSE1 = \
@@ -116,7 +117,8 @@ def build(context):
             pedirSE2 = tr("ijk", "xyz", pedirSE2)
 
             pedirfMRI_plane = re.sub(r'[+-]','', params['unwarpdir'])
-            pedirSE_plane = re.sub(r'[+-]','', pedirSE1)
+
+            # NOT USED: pedirSE_plane = re.sub(r'[+-]','', pedirSE1)
 
             # Check SpinEcho phase-encoding directions
             if (
@@ -131,11 +133,16 @@ def build(context):
             ):
                 params['SEPhasePos'] = SpinEchoPhase2
                 params['SEPhaseNeg'] = SpinEchoPhase1
-                context.log.warning(
+                log.warning(
                     "SpinEcho phase-encoding directions were swapped. \
                         Continuing!")
             # The following parameter is not used. 
             # params['seunwarpdir'] = pedirSE_plane
+        else:
+            raise Exception(
+            "The 'PhaseEncodingDirection' field not found in the " + \
+            "'SpinEchoPositive' or 'SpinEchoPositive' Inputs."
+        )
     # Else if General Electric Field Map
     elif "GeneralElectricFieldMap" in inputs.keys():
         # TODO: how do we handle GE fieldmap? where do we get deltaTE?
@@ -172,8 +179,25 @@ def validate(context):
         raise Exception('SE-Based BiasCorrection only available when ' + \
             'providing Pos and Neg SpinEchoFieldMap scans')
 
+    # Make sure that the user has not tried to use ">1 CASE":
+    # "^" is the exclusive or (XOR) operator
+    if (not (
+            (
+                ('SpinEchoNegative' in inputs.keys()) and
+                ('SpinEchoPositive' in inputs.keys())
+            ) ^
+            (
+                ('SiemensGREMagnitude' in inputs.keys()) and
+                ('SiemensGREPhase' in inputs.keys())
+            ) 
+        )
+    ):
+        raise Exception(
+            "Please use only one of Siemens Field Map, TopUp, or " + \
+            "General Electric Field Map."
+        )
     # Examine Siemens Field Map input
-    if (
+    elif (
         ('SiemensGREMagnitude' in inputs.keys()) and
         ('SiemensGREPhase' in inputs.keys())
     ):
@@ -246,5 +270,5 @@ def execute(context):
     stdout_msg = 'Pipeline logs (stdout, stderr) will be available ' + \
                  'in the file "pipeline_logs.zip" upon completion.'
 
-    context.log.info('GenericfMRIVolumeProcessingPipeline command: \n')
+    log.info('GenericfMRIVolumeProcessingPipeline command: \n')
     exec_command(context,command,stdout_msg = stdout_msg)

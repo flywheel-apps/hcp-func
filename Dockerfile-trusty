@@ -2,13 +2,15 @@
 #
 #
 
-# Use Ubuntu 16.04 LTS
-FROM flywheel/fsl-base:6.0.1
+# Use Ubuntu 14.04 LTS
+# Note, FreeSurfer 5.3.0-HCP only runs on ubuntu trusty
+
+FROM flywheel/fsl-base:6.0.1-trusty
 
 LABEL maintainer="Flywheel <support@flywheel.io>"
 
 #############################################
-# FSL 5.0.9 is a part of the base image.  Update the environment variables
+# FSL 6.0.1 is a part of the base image.  Update the environment variables
 
 # Configure FSL environment
 ENV FSLDIR=/usr/share/fsl/6.0
@@ -23,7 +25,7 @@ ENV FSLWISH=/usr/bin/wish
 
 #############################################
 # Download and install Connectome Workbench 1.3.2 
-# Compatible with HCP v4.0.0
+# Compatible with HCP v4.0.1
 RUN cd /opt/ && \
     wget https://www.humanconnectome.org/storage/app/media/workbench/workbench-linux64-v1.3.2.zip -O workbench.zip && \
     unzip workbench.zip && \
@@ -81,7 +83,7 @@ RUN unset POSIXLY_CORRECT
 # 5.3.0 ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos4_x86_64-stable-pub-v5.3.0-HCP.tar.gz
 RUN apt-get -y update \
     && apt-get install -y wget && \
-    wget -nv -O- ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.1/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.1.tar.gz | tar zxv -C /opt \
+    wget -nv -O- ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/5.3.0-HCP/freesurfer-Linux-centos4_x86_64-stable-pub-v5.3.0-HCP.tar.gz | tar zxv -C /opt \
     --exclude='freesurfer/trctrain' \
     --exclude='freesurfer/subjects/fsaverage_sym' \
     --exclude='freesurfer/subjects/fsaverage3' \
@@ -120,18 +122,12 @@ ENV PATH /opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:
 # note: python2.7 is needed for the fsl installer, but not again
 # note: python3-dev needed for Ubuntu 14.04 (but not for 16.04)
 # latest = v1.0.3
-RUN apt-get -y update && \
-    apt-get install -y --no-install-recommends \ 
-    python-dev \
-    python-numpy \
-    python-scipy \
-    python-nibabel && \
-    wget -nv https://github.com/Washington-University/gradunwarp/archive/v1.0.3.tar.gz -O gradunwarp.tar.gz && \
+RUN wget -nv https://github.com/Washington-University/gradunwarp/archive/v1.0.3.tar.gz -O gradunwarp.tar.gz && \
     cd /opt/ && \
     tar zxvf /gradunwarp.tar.gz && \
     mv /opt/gradunwarp-* /opt/gradunwarp && \
     cd /opt/gradunwarp/ && \
-    python setup.py install && \
+    python3 setup.py install && \
     rm /gradunwarp.tar.gz && \
     cd / 
 
@@ -141,7 +137,7 @@ RUN apt-get -y update && \
 ENV MSMBINDIR=${HCPPIPEDIR}/MSMBinaries
 
 RUN mkdir -p ${MSMBINDIR} && \
-    wget -nv https://github.com/ecr05/MSM_HOCR/releases/download/1.0/msm_ubuntu -O ${MSMBINDIR}/msm && \
+    wget -nv https://github.com/ecr05/MSM_HOCR/releases/download/1.0/msm_ubuntu14.04 -O ${MSMBINDIR}/msm && \
     chmod +x ${MSMBINDIR}/msm
 #############################################
 
@@ -159,7 +155,7 @@ RUN apt-get install -y --no-install-recommends \
     gzip && \
     pip3 install --upgrade pip && \
     apt-get remove -y python3-urllib3 && \
-    pip3.5 install -r requirements.txt
+    pip3.4 install -r requirements.txt
 
 # Install additional HCP requirements not mentioned previously specified
 # and clean up python2.7,apt cache, and pip cache

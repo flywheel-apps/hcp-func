@@ -106,15 +106,35 @@
         "default": false,
         "description": "Set to 'True' to save output on error."
     },
-    "Dry-Run": {
+    "dry-run": {
         "type":"boolean",
         "default": false,
         "description": "Log all commands, but do not execute."
     },
     "fMRIName": {
       "type": "string",
-      "default": "rfMRI_REST",
-      "description": "Output name for preprocessed data"
+      "default": "rfMRI_REST1_RL",
+      "enum":[
+          "rfMRI_REST1_RL",
+          "rfMRI_REST1_LR",
+          "rfMRI_REST2_RL",
+          "rfMRI_REST2_LR",
+          "tfMRI_WM_RL",
+          "tfMRI_WM_LR",
+          "tfMRI_GAMBLING_RL",
+          "tfMRI_GAMBLING_LR",
+          "tfMRI_MOTOR_RL",
+          "tfMRI_MOTOR_LR",
+          "tfMRI_LANGUAGE_RL",
+          "tfMRI_LANGUAGE_LR",
+          "tfMRI_SOCIAL_RL",
+          "tfMRI_SOCIAL_LR",
+          "tfMRI_RELATIONAL_RL",
+          "tfMRI_RELATIONAL_LR",
+          "tfMRI_EMOTION_RL",
+          "tfMRI_EMOTION_LR"
+      ],
+      "description": "Output name for preprocessed data. This is the type, objective, and configuration of the particular fMRI scan."
     },
     "BiasCorrection": {
       "type": "string",

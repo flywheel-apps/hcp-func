@@ -1,6 +1,9 @@
 import os, os.path as op
 from collections import OrderedDict
 from .common import build_command_list, exec_command
+import logging
+
+log = logging.getLogger(__name__)
 
 def build(context):
     config = context.config
@@ -9,10 +12,8 @@ def build(context):
     params['fMRIName'] = config['fMRIName']
     # qc_image_root indicates where the images are going
     params['qc_image_root'] = op.join(
-        op.join(
-            context.work_dir,config['Subject'] + \
-            '_{}.hcp_func_QC.'.format(config['fMRIName'])
-        )
+        context.work_dir, 
+        config['Subject'] + '_{}.hcp_func_QC.'.format(config['fMRIName'])
     )
     context.gear_dict['QC-Params'] = params
 
@@ -24,7 +25,9 @@ def execute(context):
     command = [op.join(SCRIPT_DIR,'hcpfunc_qc_mosaic.sh')]
 
     command = build_command_list(
-        command, context.gear_dict['QC-Params'], include_keys = False
+        command, 
+        context.gear_dict['QC-Params'], 
+        include_keys = False
     )
 
     command.append('>')
@@ -33,5 +36,5 @@ def execute(context):
     stdout_msg = 'Pipeline logs (stdout, stderr) will be available ' + \
                  'in the file "pipeline_logs.zip" upon completion.'
 
-    context.log.info('Functional QC Image Generation command: \n')
+    log.info('Functional QC Image Generation command: \n')
     exec_command(context, command, shell = True, stdout_msg = stdout_msg)

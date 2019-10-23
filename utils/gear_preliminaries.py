@@ -1,11 +1,44 @@
 import json
 from zipfile import ZipFile
 import re
+import logging
+from .custom_logger import get_custom_logger
+
+log = logging.getLogger(__name__)
+
+def initialize_gear(context):
+    # This gear will use a "gear_dict" dictionary as a custom-user field 
+    # on the gear context.
+    context.gear_dict ={}
+
+    # grab environment for gear
+    with open('/tmp/gear_environ.json', 'r') as f:
+        context.gear_dict['environ'] = json.load(f)
+
+    # grab the manifest for use later
+    with open('/flywheel/v0/manifest.json','r',errors='ignore') as f:
+        context.gear_dict['manifest_json'] = json.load(f)
+
+    #get_Custom_Logger is defined in utils.py
+    # TODO: furthermore, update hcp-func to be consistent.
+    context.log = get_custom_logger(context)
+
+    context.gear_dict['SCRIPT_DIR'] = '/tmp/scripts'
+
+    # Set dry-run parameter
+    context.gear_dict['dry-run'] = context.config['dry-run']
+
+    context.gear_dict['whitelist'] = []
+    context.gear_dict['metadata'] = {}
+
 
 def preprocess_hcp_struct_zip(context):
     # Grab the whole file list from the hcp-struct zip,
     # put it in a list to parse through. So these will be the files 
-    # that do not get compressed into the hcp-func output
+    # that do not get compressed into the hcp-func output.
+    # While we are at it, grab the hcpstruct_config.json and put it in the
+    # gear dictionary.
+    # raise an exception if zip file or struct config not found.
     hcp_struct_zip = context.get_input_path('StructZip')
     hcp_struct_list = []
     hcp_struct_config = {}
@@ -29,16 +62,18 @@ def preprocess_hcp_struct_zip(context):
 
 def validate_config_against_manifest(context):
     """
-    This function compares the automatically produced configuration file (config.json)
-    to the contstraints listed in the manifest (manifest.json). This adds a layer
-    of redundancy and transparency to that the process in the web-gui and the SDK.
+    This function compares the automatically produced configuration file 
+    (config.json) to the contstraints listed in the manifest (manifest.json). 
+    This adds a layer of redundancy and transparency to that the process in the 
+    web-gui and the SDK.
     This function:
     - checks for the existence of required inputs and the file type of all inputs
     - checks for the ranges of values on config parameters
     - checks for the length of arrays submitted
+    - prints out a description of all errors found through a raised Exception.
     """
     c_config = context.config
-    manifest = json.load(open('/flywheel/v0/manifest.json','r',errors='ignore'))
+    manifest = context.gear_dict['manifest_json']
     m_config = manifest['config']
     errors = []
     if 'config' in manifest.keys():
@@ -118,9 +153,10 @@ def validate_config_against_manifest(context):
 
 def set_subject(context):
     """
-    This function queries the subject from the session only if the 
-    context.config['Subject'] is invalid or not present.
-    Exits ensuring the value of the subject is valid
+    This function queries the subject from the hcp-func gear configuration,
+    the previous hcp-struct gear configuration, or session container (SDK) in
+    that order, depending on the failure of the first two.
+    Exits ensuring the value of the subject is valid or raises an Exception.
     """
     subject = ''
     # Subject in the gear configuration overides everything else
@@ -152,12 +188,17 @@ def set_subject(context):
             )
     
     context.config['Subject'] = subject
-    context.log.info('Using {} as Subject ID.'.format(subject))
+    log.info('Using {} as Subject ID.'.format(subject))
 
 def unzip_hcp_struct(context):
+    """
+    Unzip the contents of the hcp-struct output into the work directory
+    (/flywheel/v0/work).  All of the files extracted are tracked from the 
+    above preprocess_hcp_struct_zip.
+    """
     hcp_struct_zip_name = context.get_input_path('StructZip')
     hcp_struct_zip = ZipFile(hcp_struct_zip_name,'r')
-    context.log.info(
+    log.info(
         'Unzipping hcp-struct file, {}'.format(hcp_struct_zip_name)
     )
     if not context.gear_dict['dry-run']:
