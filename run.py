@@ -13,7 +13,7 @@ import flywheel
 def main():
     # Preamble: take care of all gear-typical activities.
     context = flywheel.GearContext()
-
+    context.gear_dict = {}
     # Initialize all hcp-gear variables.
     gear_preliminaries.initialize_gear(context)
 
