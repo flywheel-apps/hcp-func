@@ -3,7 +3,7 @@ import json
 import os, os.path as op
 from zipfile import ZipFile
 import traceback
-from utils import results, gear_preliminaries
+from utils import results, gear_preliminaries, func_utils
 from utils.args import GenericfMRIVolumeProcessingPipeline, \
                        GenericfMRISurfaceProcessingPipeline, \
                        hcpfunc_qc_mosaic
@@ -16,7 +16,6 @@ def main():
     context.gear_dict = {}
     # Initialize all hcp-gear variables.
     gear_preliminaries.initialize_gear(context)
-
     context.log_config()
     
     # Before continuing from here, we need to validate the config.json
@@ -25,22 +24,22 @@ def main():
         gear_preliminaries.validate_config_against_manifest(context)
     except Exception as e:
         context.log.error('Invalid Configuration:')
-        context.log.fatal(e,)
+        context.log.exception(e)
         context.log.fatal(
             'Please make the prescribed corrections and try again.'
         )
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         os.sys.exit(1)
 
     # Get file list and configuration from hcp-struct zipfile
     try:
-        gear_preliminaries.preprocess_hcp_struct_zip(context)
+        hcp_struct_zip_filename = context.get_input_path('StructZip')
+        hcp_struct_list, hcp_struct_config = \
+            gear_preliminaries.preprocess_hcp_zip(hcp_struct_zip_filename)
+        context.gear_dict['exclude_from_output'] = hcp_struct_list
+        context.gear_dict['hcp_struct_config'] = hcp_struct_config
     except Exception as e:
-        context.log.error(e,)
+        context.log.exception(e)
         context.log.error('Invalid hcp-struct zip file.')
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         os.sys.exit(1)
     
     # Ensure the subject_id is set in a valid manner 
@@ -48,12 +47,10 @@ def main():
     try:
         gear_preliminaries.set_subject(context)
     except Exception as e:
-        context.log.fatal(e,)
+        context.log.exception(e)
         context.log.fatal(
             'The Subject ID is not valid. Examine and try again.',
         )
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         os.sys.exit(1)
 
     ############################################################################
@@ -66,13 +63,11 @@ def main():
         GenericfMRIVolumeProcessingPipeline.build(context)
         GenericfMRIVolumeProcessingPipeline.validate(context)
     except Exception as e:
-        context.log.fatal(e)
+        context.log.exception(e)
         context.log.fatal(
             'Validating Parameters for the ' + \
             'fMRI Volume Pipeline Failed!'
         )
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         os.sys.exit(1)
 
     try:
@@ -80,31 +75,40 @@ def main():
         GenericfMRISurfaceProcessingPipeline.build(context)
         GenericfMRISurfaceProcessingPipeline.validate(context)
     except Exception as e:
-        context.log.fatal(e)
+        context.log.exception(e)
         context.log.fatal(
             'Validating Parameters for the ' + \
             'fMRI Surface Pipeline Failed!'
         )
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         os.sys.exit(1)
 
     ###########################################################################
     # Unzip hcp-struct results
     try: 
-        gear_preliminaries.unzip_hcp_struct(context)
+        gear_preliminaries.unzip_hcp(context, hcp_struct_zip_filename)
     except Exception as e:
-        context.log.fatal(e)
+        context.log.exception(e)
         context.log.fatal(
             'Unzipping hcp-struct zipfile failed!'
         )
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         os.sys.exit(1)
 
     ############################################################################
     ####################Execute HCP Pipelines ##################################
+    # Some hcp-func specific output parameters:
+    context.gear_dict['output_config'], \
+        context.gear_dict['output_config_filename'] = \
+        func_utils.configs_to_export(context)
 
+    context.gear_dict['output_zip_name'] =  op.join(
+        context.output_dir, 
+        '{}_{}_hcpfunc.zip'.format(
+            context.config['Subject'],
+            context.config['fMRIName']
+        )
+    )
+
+    context.gear_dict['remove_files'] = func_utils.remove_intermediate_files
     ###########################################################################
     # Pipelines common commands
     QUEUE = ""
@@ -124,10 +128,8 @@ def main():
     try:
         GenericfMRIVolumeProcessingPipeline.execute(context)
     except Exception as e:
-        context.log.fatal(e)
+        context.log.exception(e)
         context.log.fatal('The fMRI Volume Pipeline Failed!')
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         if context.config['save-on-error']:
             results.cleanup(context)
         os.sys.exit(1)
@@ -136,10 +138,8 @@ def main():
     try:
         GenericfMRISurfaceProcessingPipeline.execute(context)
     except Exception as e:
-        context.log.fatal(e)
+        context.log.exception(e)
         context.log.fatal('The fMRI Surface Pipeline Failed!')
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         if context.config['save-on-error']:
             results.cleanup(context)
         os.sys.exit(1)
@@ -149,10 +149,8 @@ def main():
         hcpfunc_qc_mosaic.build(context)
         hcpfunc_qc_mosaic.execute(context)
     except Exception as e:
-        context.log.fatal(e,)
+        context.log.exception(e)
         context.log.fatal('HCP Functional QC Images has failed!')
-        tb = traceback.format_tb(e.__traceback__)
-        context.log.fatal(''.join(tb))
         if context.config['save-on-error']:
             results.cleanup(context)
         exit(1)
