@@ -93,6 +93,9 @@ ENV PATH /opt/freesurfer/bin:/opt/freesurfer/fsfast/bin:/opt/freesurfer/tktools:
 ENV MSMBINDIR=${HCPPIPEDIR}/MSMBinaries
 
 #############################################
+# Copy gear-specific utils and dependencies
+COPY func_utils ${FLYWHEEL}/utils
+COPY func_scripts /tmp/scripts
 
 # Copy executable/manifest to Gear
 COPY run.py ${FLYWHEEL}/run.py
