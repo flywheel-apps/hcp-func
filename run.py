@@ -118,7 +118,6 @@ def main():
 
     command_common=[
         op.join(context.gear_dict['environ']['FSLDIR'],'bin','fsl_sub'),
-        QUEUE,
         FSLSUBOPTIONS
     ]
     
