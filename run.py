@@ -33,8 +33,9 @@ def main():
     # Get file list and configuration from hcp-struct zipfile
     try:
         hcp_struct_zip_filename = context.get_input_path('StructZip')
-        hcp_struct_list, hcp_struct_config = \
-            gear_preliminaries.preprocess_hcp_zip(hcp_struct_zip_filename)
+        hcp_struct_list, \
+        hcp_struct_config = \
+                gear_preliminaries.preprocess_hcp_zip(hcp_struct_zip_filename)
         context.gear_dict['exclude_from_output'] = hcp_struct_list
         context.gear_dict['hcp_struct_config'] = hcp_struct_config
     except Exception as e:
