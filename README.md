@@ -34,6 +34,9 @@
 * <code>\<subject\>\_\<fMRIName\>\_hcpfunc\_QC.*.png</code>: QC images for visual inspection of output quality (Distortion correction and registration to anatomy, details to come...)
 * Logs (details to come...)
 
+## Gear Release Notes
+The latest iteration of the hcp gears use a common docker base image to consolidate both library installations and common functionality across gears.  See [HCP Base Docker Image](https://github.com/flywheel-apps/hcp-base) for details.
+
 ## Important HCP Pipeline links
 * [HCP Pipelines](https://github.com/Washington-University/Pipelines)
 * [HCP Pipelines FAQ](https://github.com/Washington-University/Pipelines/wiki/FAQ)
