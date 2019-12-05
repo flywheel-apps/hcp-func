@@ -18,6 +18,17 @@ def main():
     gear_preliminaries.initialize_gear(context)
     context.log_config()
     
+    # Utilize FreeSurfer license from config or project metadata
+    try:
+        gear_preliminaries.set_freesurfer_license(context)
+    except Exception as e:
+        context.log.exception(e)
+        context.log.fatal(
+            'A valid FreeSurfer license must be present to run.' + \
+            'Please check your configuration and try again.'
+        )
+        os.sys.exit(1)
+        
     # Before continuing from here, we need to validate the config.json
     # Validate gear configuration against gear manifest
     try:

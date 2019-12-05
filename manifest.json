@@ -95,9 +95,9 @@
       "optional": true
     },
     "FreeSurferLicense": {
-      "description": "FreeSurfer license.txt file (found in $FREESURFER_HOME/license.txt)",
+      "description": "FreeSurfer license.txt file",
       "base": "file",
-      "optional": false
+      "optional": true
     }
   },
   "config": {
@@ -105,6 +105,12 @@
         "type":"boolean",
         "default": false,
         "description": "Set to 'True' to save output on error."
+    },
+
+    "FREESURFER_LICENSE": {
+        "description": "FreeSurfer license as space-separated string.",
+        "type": "string",
+        "optional": true
     },
     "dry-run": {
         "type":"boolean",

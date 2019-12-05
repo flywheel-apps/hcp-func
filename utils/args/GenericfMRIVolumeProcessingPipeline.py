@@ -17,10 +17,6 @@ def build(context):
     inputs = context._invocation['inputs']
     environ = context.gear_dict['environ']
 
-    # Install FreeSurfer license file
-    shutil.copy(context.get_input_path('FreeSurferLicense'),
-                op.join(environ['FREESURFER_HOME'],'license.txt'))
-
     params = OrderedDict()
     
     # Initialize parameters.
