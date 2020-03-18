@@ -22,23 +22,18 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLWISH=/usr/bin/wish
 
 #############################################
-# Download and install Connectome Workbench 1.3.2 
-# Compatible with HCP v4.0.1
+# Connectome Workbench 1.3.2 is a part of the base image. Compatible with HCP v4.0.1
+# Setting related ENV variable here.
 
 ENV CARET7DIR=/opt/workbench/bin_linux64
 
 #############################################
-# Download and install HCP Pipelines
-
-# Using v4.0.1
-
+# HCP Pipelines v4.0.1 installed in base image
 # Set up specific environment variables for the HCP Pipeline
 ENV FSL_DIR="${FSLDIR}" \ 
     HCPPIPEDIR=/opt/HCP-Pipelines \ 
     MSMBINDIR=${HCPPIPEDIR}/MSMBinaries \ 
     MSMCONFIGDIR=${HCPPIPEDIR}/MSMConfig
-#ENV MATLAB_COMPILER_RUNTIME=/media/myelin/brainmappers/HardDrives/1TB/MATLAB_Runtime/v901
-#ENV FSL_FIXDIR=/media/myelin/aahana/fix1.06
 
 #For HCP Pipeline v4.0.1
 ENV MSMBin=${HCPPIPEDIR}/MSMBinaries \
