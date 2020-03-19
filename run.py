@@ -56,7 +56,7 @@ def main():
         context.gear_dict['hcp_struct_config'] = hcp_struct_config
     except Exception as e:
         context.log.exception(e)
-        context.log.error('Invalid hcp-struct zip file.')
+        context.log.fatal('Invalid hcp-struct zip file.')
         os.sys.exit(1)
 
     # Ensure the subject_id is set in a valid manner
@@ -70,8 +70,8 @@ def main():
         )
         os.sys.exit(1)
 
-    ############################################################################
-    ###################Build and Validate Parameters############################
+    # ##########################################################################
+    # #################Build and Validate Parameters############################
     # Doing as much parameter checking before ANY computation.
     # Fail as fast as possible.
 
@@ -108,8 +108,8 @@ def main():
         )
         os.sys.exit(1)
 
-    ############################################################################
-    ####################Execute HCP Pipelines ##################################
+    # ##########################################################################
+    # ##################Execute HCP Pipelines ##################################
     # Some hcp-func specific output parameters:
     context.gear_dict['output_config'], \
         context.gear_dict['output_config_filename'] = \
