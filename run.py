@@ -89,7 +89,6 @@ def main():
     try:
         # Build and validate from Surface Processign Pipeline
         GenericfMRISurfaceProcessingPipeline.build(context)
-        GenericfMRISurfaceProcessingPipeline.validate(context)
     except Exception as e:
         context.log.exception(e)
         context.log.fatal(

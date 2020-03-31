@@ -39,16 +39,6 @@ def build(context):
     context.gear_dict['Surf-params'] = params
 
 
-def validate(context):
-    """
-    Validate the above built parameters, as needed.
-
-    Currently not needed, but reserved in case of discovered parameter
-    conflicts.
-    """
-    pass
-
-
 def execute(context):
     environ = context.gear_dict['environ']
     # Start by building command to execute

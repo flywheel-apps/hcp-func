@@ -26,10 +26,6 @@ def build(context):
     context.gear_dict['QC-Params'] = params
 
 
-def validate(context):
-    pass
-
-
 def execute(context):
     SCRIPT_DIR = context.gear_dict['SCRIPT_DIR']
     command = [op.join(SCRIPT_DIR, 'hcpfunc_qc_mosaic.sh')]
