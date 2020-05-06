@@ -10,6 +10,22 @@ LABEL maintainer="Flywheel <support@flywheel.io>"
 #############################################
 # FSL 6.0.1 is a part of the base image.  Update the environment variables
 
+#Build-time key retrieval is sometimes unable to connect to keyserver.  Instead, download the public key manually and store it in plaintext
+#within repo.  You should run these commands occassionally to make sure the saved public key is up to date:
+#gpg --keyserver hkp://pgp.mit.edu:80  --recv 0xA5D32F012649A5A9 && \
+#gpg --export --armor 0xA5D32F012649A5A9 > neurodebian_pgpkey.txt && \
+#gpg --batch --yes --delete-keys 0xA5D32F012649A5A9
+
+COPY neurodebian_pgpkey.txt /tmp/
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    curl -sSL http://neuro.debian.net/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list && \
+    apt-key add /tmp/neurodebian_pgpkey.txt && \
+    apt-get update && \
+    apt-get install -y fsl-core=5.0.9-5~nd14.04+1 && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Configure FSL environment
 ENV FSLDIR=/usr/share/fsl/6.0 \ 
     FSL_DIR="${FSLDIR}" \ 
