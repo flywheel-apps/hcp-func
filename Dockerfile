@@ -16,6 +16,8 @@ LABEL maintainer="Flywheel <support@flywheel.io>"
 #gpg --export --armor 0xA5D32F012649A5A9 > neurodebian_pgpkey.txt && \
 #gpg --batch --yes --delete-keys 0xA5D32F012649A5A9
 
+COPY neurodebian_pgpkey.txt /tmp/
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     curl -sSL http://neuro.debian.net/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list && \
