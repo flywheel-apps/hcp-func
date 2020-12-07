@@ -3,7 +3,7 @@
 #
 
 # Uses Ubuntu 16.04 LTS
-FROM flywheel/hcp-base:0.2.0_4.0.1
+FROM flywheel/hcp-base:1.0.1_4.0.1
 
 LABEL maintainer="Flywheel <support@flywheel.io>"
 
@@ -20,7 +20,7 @@ COPY neurodebian_pgpkey.txt /tmp/
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
-    curl -sSL http://neuro.debian.net/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list && \
+    curl -sSL http://neurodebian.ovgu.de/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list && \
     apt-key add /tmp/neurodebian_pgpkey.txt && \
     apt-get update && \
     apt-get install -y fsl-core=5.0.9-5~nd14.04+1 && \
