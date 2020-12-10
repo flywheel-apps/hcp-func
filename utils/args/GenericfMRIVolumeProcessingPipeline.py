@@ -2,6 +2,7 @@
 Builds, validates, and excecutes parameters for the HCP script 
 /opt/HCP-Pipelines/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh
 part of the hcp-func gear
+NOTE: the `utils.gear_preliminaries` module is in the `hcp-base` code
 """
 import logging
 import os
