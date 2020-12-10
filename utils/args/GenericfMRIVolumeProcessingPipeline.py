@@ -2,6 +2,7 @@
 Builds, validates, and excecutes parameters for the HCP script 
 /opt/HCP-Pipelines/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh
 part of the hcp-func gear
+NOTE: the `utils.gear_preliminaries` module is in the `hcp-base` code
 """
 import logging
 import os
@@ -10,6 +11,7 @@ import re
 from collections import OrderedDict
 
 from tr import tr
+from utils.gear_preliminaries import create_sanitized_filepath
 
 from .common import build_command_list, exec_command
 
@@ -56,7 +58,9 @@ def build(context):
 
     # TODO: confirm parameters match fMRITimeSeries?
     if "fMRIScout" in inputs.keys():
-        params["fmriscout"] = context.get_input_path("fMRIScout")
+        params["fmriscout"] = create_sanitized_filepath(
+            context.get_input_path("fMRIScout")
+        )
 
     # Read necessary acquisition params from fMRI
     obj = inputs["fMRITimeSeries"]["object"]
@@ -80,8 +84,12 @@ def build(context):
     if ("SiemensGREMagnitude" in inputs.keys()) and (
         "SiemensGREPhase" in inputs.keys()
     ):
-        params["fmapmag"] = context.get_input_path("SiemensGREMagnitude")
-        params["fmapphase"] = context.get_input_path("SiemensGREPhase")
+        params["fmapmag"] = create_sanitized_filepath(
+            context.get_input_path("SiemensGREMagnitude")
+        )
+        params["fmapphase"] = create_sanitized_filepath(
+            context.get_input_path("SiemensGREPhase")
+        )
         params["dcmethod"] = "SiemensFieldMap"
         params["topupconfig"] = "NONE"
 
@@ -97,8 +105,12 @@ def build(context):
         "SpinEchoPositive" in inputs.keys()
     ):
         params["dcmethod"] = "TOPUP"
-        SpinEchoPhase1 = context.get_input_path("SpinEchoPositive")
-        SpinEchoPhase2 = context.get_input_path("SpinEchoNegative")
+        SpinEchoPhase1 = create_sanitized_filepath(
+            context.get_input_path("SpinEchoPositive")
+        )
+        SpinEchoPhase2 = create_sanitized_filepath(
+            context.get_input_path("SpinEchoNegative")
+        )
         # Topup config if using TOPUP, set to NONE if using regular FIELDMAP
         params["topupconfig"] = environ["HCPPIPEDIR_Config"] + "/b02b0.cnf"
         if (
@@ -149,7 +161,9 @@ def build(context):
         raise Exception("Cannot currently handle GeneralElectricFieldmap!")
 
     if "GradientCoeff" in inputs.keys():
-        params["gdcoeffs"] = context.get_input_path("GradientCoeff")
+        params["gdcoeffs"] = create_sanitized_filepath(
+            context.get_input_path("GradientCoeff")
+        )
 
     params["printcom"] = " "
 
