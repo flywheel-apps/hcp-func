@@ -21,6 +21,9 @@
     },
     "command": "/flywheel/v0/run.py",
     "inputs": {
+        "api-key": {
+            "base": "api-key"
+        },
         "StructZip": {
             "description": "Zipped output from HCP-Struct pipeline",
             "base": "file",
