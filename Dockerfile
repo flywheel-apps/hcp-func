@@ -23,7 +23,10 @@ RUN apt-get update && \
     curl -sSL http://neurodebian.ovgu.de/lists/trusty.us-ca.full >> /etc/apt/sources.list.d/neurodebian.sources.list && \
     apt-key add /tmp/neurodebian_pgpkey.txt && \
     apt-get update && \
-    apt-get install -y fsl-core=5.0.9-5~nd14.04+1 && \
+    apt-get install -y fsl-core=5.0.9-5~nd14.04+1 \
+    python3-pip && \
+    pip3 install pip=20.0.2 && \
+    pip3 install flywheel-sdk~=14.6.3 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Configure FSL environment
