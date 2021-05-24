@@ -3,7 +3,7 @@
 #
 
 # Uses Ubuntu 16.04 LTS
-FROM flywheel/hcp-base:1.0.2_4.3.0rc0
+FROM flywheel/hcp-base:1.0.3_4.3.0rc0
 
 LABEL maintainer="Flywheel <support@flywheel.io>"
 
@@ -41,7 +41,7 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
     FSLWISH=/usr/bin/wish
 
 #############################################
-# Connectome Workbench 1.3.2 is a part of the base image. Compatible with HCP v4.0.1
+# Connectome Workbench 1.5.0 is a part of the base image. Compatible with HCP v4.3.0
 # Setting related ENV variable here.
 
 ENV CARET7DIR=/opt/workbench/bin_linux64
