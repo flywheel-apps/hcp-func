@@ -12,6 +12,9 @@ log = logging.getLogger(__name__)
 
 
 def build(context):
+    """
+
+    """
     config = context.config
     params = {}
     params["path"] = context.work_dir
