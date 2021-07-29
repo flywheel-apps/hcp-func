@@ -4,6 +4,7 @@ import os.path as op
 
 import flywheel
 
+# Note utils are from hcp-base Docker image.
 from utils import func_utils, gear_preliminaries, results
 from utils.args import (
     GenericfMRISurfaceProcessingPipeline,
@@ -13,6 +14,22 @@ from utils.args import (
 
 
 def main():
+    """
+    Handles all the aspects of setting up the HCPPipeline functional run.
+    1) Check/get the FS license
+    2) Unzip the analyzed structural files (hcp-struct must be run first)
+    3) Build and validate the command for the fMRIVolume
+    4) Build the command for fMRISurface.
+    5) Unzip the structural analysis output.
+    6) Run fMRIVolume
+    7) Run fMRISurface.
+    8) Produce QC on fMRI analyses.
+
+    Returns:
+        Zipped analysis folder
+        Exit status of the gear
+    """
+
     # Preamble: take care of all gear-typical activities.
     context = flywheel.GearContext()
     context.gear_dict = {}
@@ -78,7 +95,7 @@ def main():
         os.sys.exit(1)
 
     try:
-        # Build and validate from Surface Processign Pipeline
+        # Build and validate from Surface Processing Pipeline
         GenericfMRISurfaceProcessingPipeline.build(context)
     except Exception as e:
         context.log.exception(e)

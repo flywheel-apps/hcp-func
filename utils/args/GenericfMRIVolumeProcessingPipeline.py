@@ -19,6 +19,14 @@ log = logging.getLogger(__name__)
 
 
 def build(context):
+    """
+    Collect the configurations from the manifest to be passed to HCPPipelines' fMRIVolume.
+    Converts phase encoding irregularities to HCP-expected directions.
+    Args:
+        context: Gear information, chiefly containing selected configuration options.
+    Returns:
+        modified context with "Vol-params" property for the parameters to run the command.
+    """
     config = context.config
     inputs = context._invocation["inputs"]
     environ = context.gear_dict["environ"]
