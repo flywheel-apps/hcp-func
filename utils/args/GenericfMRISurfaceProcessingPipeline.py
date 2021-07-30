@@ -6,7 +6,7 @@ part of the hcp-func gear
 import logging
 import os.path as op
 
-# Note common in available from hcp-base, once the Docker image is pulled.
+# Note common is available from hcp-base, once the Docker image is pulled.
 from .common import build_command_list, exec_command
 
 log = logging.getLogger(__name__)
