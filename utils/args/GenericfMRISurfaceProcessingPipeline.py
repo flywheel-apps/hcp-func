@@ -6,12 +6,20 @@ part of the hcp-func gear
 import logging
 import os.path as op
 
+# Note common is available from hcp-base, once the Docker image is pulled.
 from .common import build_command_list, exec_command
 
 log = logging.getLogger(__name__)
 
 
 def build(context):
+    """
+    Collect the configurations from the manifest to be passed to HCPPipelines' fMRISurface
+    Args:
+        context: Gear information, chiefly containing selected configuration options.
+    Returns:
+        modified context with "Surf-params" property for the parameters to run the command.
+    """
     config = context.config
     params = {}
     params["path"] = context.work_dir
