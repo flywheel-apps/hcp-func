@@ -7,6 +7,11 @@ FROM flywheel/hcp-base:1.0.3_4.3.0rc0
 
 LABEL maintainer="Flywheel <support@flywheel.io>"
 
+#Remove expired LetsEncrypt cert
+RUN rm /usr/share/ca-certificates/mozilla/DST_Root_CA_X3.crt && \
+      update-ca-certificates
+ENV REQUESTS_CA_BUNDLE "/etc/ssl/certs/ca-certificates.crt"   
+
 #############################################
 # FSL 6.0.1 is a part of the base image.  Update the environment variables
 
