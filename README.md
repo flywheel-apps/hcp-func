@@ -1,3 +1,6 @@
+> [!WARNING]
+> This repo has moved to [https://gitlab.com/flywheel-io/flywheel-apps/bids-hcp](https://gitlab.com/flywheel-io/flywheel-apps/bids-hcp)
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/flywheel/hcp-func.svg)](https://hub.docker.com/r/flywheel/hcp-struct/)
 [![Docker Stars](https://img.shields.io/docker/stars/flywheel/hcp-struct.svg)](https://hub.docker.com/r/flywheel/hcp-struct/)
 # flywheel/hcp-func
